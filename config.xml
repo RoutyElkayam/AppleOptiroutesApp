@@ -1,0 +1,107 @@
+<?xml version='0.0.11' encoding='utf-8'?>
+<widget id="OptWays.sayyes" version="0.0.11" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>Optways</name>
+    <description>Sample Apache Cordova App</description>
+    <author email="dev@cordova.apache.org" href="https://cordova.apache.org">
+        Apache Cordova Team
+    </author>
+    <content src="index.html" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+    <platform name="android">
+        <preference name="AndroidWindowSplashScreenBackground" value="#FFFFFF" /> <!-- Set your background color here -->
+        <preference name="AndroidWindowSplashScreenDuration" value="6000" /> <!-- Duration in milliseconds -->
+        <preference name="SplashMaintainAspectRatio" value="true" />
+        <preference name="ShowSplashScreenSpinner" value="false" /> <!-- Hide the spinner if not needed -->
+        <preference name="AndroidWindowSplashScreenAnimatedIcon" value="platforms\android\app\src\main\res\drawable\icon.xml" />
+        
+        <!-- <splash density="port-hdpi" src="res/screen/android/drawable-hdpi/screen.png" />
+        <splash density="port-ldpi" src="res/screen/android/drawable-ldpi/screen.png" />
+        <splash density="port-mdpi" src="res/screen/android/drawable-mdpi/screen.png" />
+        <splash density="port-xhdpi" src="res/screen/android/drawable-xhdpi/screen.png" />
+        <splash density="port-xxhdpi" src="res/screen/android/drawable-xxhdpi/screen.png" />
+        <splash density="port-xxxhdpi" src="res/screen/android/drawable-xxxhdpi/screen.png" />
+        <splash density="land-hdpi" src="res/screen/android/drawable-land-hdpi/screen.png" />
+        <splash density="land-ldpi" src="res/screen/android/drawable-land-ldpi/screen.png" />
+        <splash density="land-mdpi" src="res/screen/android/drawable-land-mdpi/screen.png" />
+        <splash density="land-xhdpi" src="res/screen/android/drawable-land-xhdpi/screen.png" />
+        <splash density="land-xxhdpi" src="res/screen/android/drawable-land-xxhdpi/screen.png" />
+        <splash density="land-xxxhdpi" src="res/screen/android/drawable-land-xxxhdpi/screen.png" /> -->
+        
+        <icon density="ldpi" src="res/screen/android/drawable-ldpi/icon.png" />
+        <icon density="mdpi" src="res/screen/android/drawable-mdpi/icon.png" />
+        <icon density="hdpi" src="res/screen/android/drawable-hdpi/icon.png" />
+        <icon density="xhdpi" src="res/screen/android/drawable-xhdpi/icon.png" />
+        <icon density="xxhdpi" src="res/screen/android/drawable-xxhdpi/icon.png" />
+        <icon density="xxxhdpi" src="res/screen/android/drawable-xxxhdpi/icon.png" />
+    </platform>
+    
+    <platform name="ios">
+        
+        <config-file platform="ios" target="*-Info.plist" parent="LSApplicationQueriesSchemes">
+            <array>
+                <string>waze</string>
+            </array>
+        </config-file>
+        <preference name="DisallowOverscroll" value="true" />
+        <preference name="ScrollEnabled" value="true" />
+        <preference name="WKSuspendInBackground" value="false" />
+        <allow-intent href="itms:*" />
+        <allow-intent href="itms-apps:*" />
+        <allow-intent href="waze://*" />
+        <allow-navigation href="*" />
+        <access origin="*" />
+        <allow-intent href="*" />
+        <preference name="scheme" value="https" />
+        <preference name="hostname" value="localhost" />
+        <edit-config target="NSLocationWhenInUseUsageDescription" file="*-Info.plist" mode="merge">
+            <string>we use your location to navigate you the best and Optimized route!</string>
+        </edit-config>
+        
+        <preference name="WKWebViewOnly" value="true" />
+        <preference name="MediaTypesRequiringUserActionForPlayback" value="video" />
+        <preference name="AllowInlineMediaPlayback" value="true" />
+        <preference name="AllowNewWindows" value="true" />
+        <preference name="LimitNavigationsToAppBoundDomains" value="false" />
+
+        <!-- feature name="CDVWKWebViewEngine">
+            <param name="ios-package" value="CDVWKWebViewEngine" />
+        </feature-->
+        
+        <preference name="CordovaWebViewEngine" value="CDVWKWebViewEngine" />
+        
+        <!-- Icons -->
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/16.png" width="16" height="16" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/20.png" width="20" height="20" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/29.png" width="29" height="29" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/32.png" width="32" height="32" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/40.png" width="40" height="40" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/48.png" width="48" height="48" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/50.png" width="50" height="50" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/57.png" width="57" height="57" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/60.png" width="60" height="60" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/72.png" width="72" height="72" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/76.png" width="76" height="76" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/80.png" width="80" height="80" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/87.png" width="87" height="87" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/120.png" width="120" height="120" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/144.png" width="144" height="144" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/167.png" width="167" height="167" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/180.png" width="180" height="180" />
+        <icon src="res/Assets.xcassets/AppIcon.appiconset/1024.png" width="1024" height="1024" />
+        
+        <!-- Splash screens -->
+        <splash src="res/screen.png" width="640" height="1136" />
+        <splash src="res/screen.png" width="750" height="1334" />
+        <splash src="res/screen.png" width="828" height="1792" />
+        <splash src="res/screen.png" width="1125" height="2436" />
+        <splash src="res/screen.png" width="1242" height="2208" />
+        <splash src="res/screen.png" width="1242" height="2688" />
+        <splash src="res/screen.png" width="1536" height="2048" />
+        <splash src="res/screen.png" width="1668" height="2224" />
+        <splash src="res/screen.png" width="1668" height="2388" />
+        <splash src="res/screen.png" width="2048" height="2732" />
+        
+    </platform>
+    <preference name="AndroidPersistentFileLocation" value="Compatibility" />
+</widget>

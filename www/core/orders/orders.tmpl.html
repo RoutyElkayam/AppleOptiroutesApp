@@ -1,0 +1,735 @@
+<div id="loader" style="background-color:white; width:100%; height:100vh;">
+
+    <div class="wrap_loader">
+
+        <div class="gauge-loader"></div>
+
+        <p style="display:block;width:100%" class="load_txt">
+
+            {{arraylang['loading'][selectedlang]}}...
+
+        </p>
+
+    </div>
+
+</div>
+
+
+<div id="nonloader">
+
+    <!-- <div id="mymap" class="mymap"></div> -->
+
+    <div class="col-xs-12 no-padding logo">
+        <div class="col-xs-6 no-padding">
+            <!--<div class="col-xs-5 col-xs-offset-2 ">
+				<img src="img/LOGO.svg" class="logo-img">
+			</div>-->
+            <div class="col-xs-12" style="font-weight: 700;font-size: 20px;color: #28677c;margin-top:2.5px;">
+                {{current_user.name}}
+            </div>
+            <div class="col-xs-12">
+                <a data-toggle="modal" data-target="#LogoutConfirm" style="color: #eb584a;margin-top:6px;font-weight: bold;">{{arraylang['sign_out'][selectedlang]}}</a>
+                <!-- <a data-toggle="modal" data-target="#LogoutConfirm" class="center center-block" style="color: #eb584a;margin-top:10px"><i class="fa fa-power-off" ></i></a> -->
+            </div>
+        </div>
+
+        <div class="col-xs-2 no-padding header-btn-group">
+            <!-- משאית לעת עתה לא פועל -->
+            <!-- <div class="col-xs-5 no-padding">
+                <span type="button" class="btn btn-default top-left" ng-if="current_user.orders_for_pallets == true" ng-click="driverSelfSchedule()" style="background-color: #46b687">משאית</span>
+                <span type="button" class="btn btn-default top-left" ng-if="current_user.orders_for_pallets == false" ng-click="printTruckTemplate()" style="background-color: #46b687">משאית</span>
+
+            </div> -->
+            <div class="col-xs-12 no-padding">
+                <span type="button" class="col-xs-12 btn-default top-left header-buttons" ng-click="refresh()" >
+                    {{arraylang['refresh'][selectedlang]}}
+                </span> 
+            </div>
+            <!-- //RUTEL reorder-btn -->
+            <div class="col-xs-12 no-padding" ng-if="current_user.reorder_route_from_app">
+                <span type="button" class="col-xs-12 btn-default top-left header-buttons" style="margin-bottom: 4px;" ng-click="reorderRoute()" >
+						{{arraylang['reorder_route'][selectedlang]}}
+				</span>
+            </div>
+        </div>
+        <div class="col-xs-4 header-btn-group" style="height: 60px;">
+            <div class="col-xs-4 no-padding" style="height: 60px;" ng-click="zoomIn(false)">
+                <span type="button" class="col-xs-12 top-left zoom-button"  style="font-size: 12px;">
+                    <i class="fa fa-font fa-1x" aria-hidden="true" style="margin: 10px 4px 0px 4px;font-size: 14px;"></i>
+                </span>
+            </div>
+            <div class="col-xs-7" style="padding-right: 10px;padding-left: 5px;height: 60px;" ng-click="zoomIn(true)">
+                <span type="button" class="col-xs-12 top-left zoom-button"  >
+                    <i class="fa fa-font fa-1x" aria-hidden="true" style="margin: 8px 2px 0px 2px;font-size: 20px;"></i>
+                </span> 
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xs-12" style="margin-top: -10px">
+
+        <!-- <p style="margin-top: 20px;font-weight: 700;font-size: 24px;text-align: center;color: #2D819E;margin-bottom: 0;" class="">{{arraylang['hello'][selectedlang]}} {{current_user.name}}</p> -->
+        <!-- <p style="margin-top: 20px;font-weight: 700;font-size: 26px;text-align: center;color: #28677c;margin-bottom: 0;" class="">{{arraylang['hello'][selectedlang]}} {{current_user.name}}</p> -->
+        <!-- //RUTEL message if it's time of self-order -->
+        <p ng-if="selfReOrderTime  && !route.start_time" style="font-weight: 400;font-size: 17px;text-align: center;color: #2D819E;margin-top: 7px;" class="">{{arraylang['self_reorder_stops'][selectedlang]}} {{limit2.toLocaleTimeString()}}</p>
+
+        <!-- <a data-toggle="modal" data-target="#LogoutConfirm" class="center center-block" style="color: #eb584a">{{arraylang['sign_out'][selectedlang]}}</a> -->
+        <span  ng-click="driverSelfSchedule()" style="    margin-top: 15px;" class="circle-urgency" ><i class="fa fa-truck"  ></i></span>  
+		<!-- <span ng-if="current_user.orders_for_pallets == false" ng-click="printTruckTemplate()" style="    margin-top: -30px;" class="circle-urgency" ><i class="fa fa-truck"  ></i></span>   -->
+        <div class="col-xs-7" ng-if="!route.start_time||selfReOrderTime">  
+            <!-- RUTEL add in time of self-order the option by the above buttons: -->
+            <div class="col-xs-6">
+                <!-- &&!route.start_time -->
+                <button class="start-btn" style="font-size: 14px;padding: 0px;" ng-if="selfReOrderTime" ng-click="startReorder($event)">{{btn_text}} 
+					<i ng-class="{'fas fa-arrows-alt': selfReOrderTime && !selfReOrder , 'fa fa-lock':selfReOrder && selfReOrderTime}" aria-hidden="true" ></i></button>
+            </div>
+            <div ng-class="{'col-xs-6': !selfReOrderTime, 'col-xs-6':selfReOrderTime || selfReOrder}">
+                <button class="start-btn" ng-if="!route.start_time" ng-click="startRoute()" ng-disabled="disableRoute">
+					{{arraylang['getting_started'][selectedlang]}}
+					</button>
+            </div>
+        </div>
+
+        <div class="col-xs-5" ng-if="route.start_time">
+            <p class="start-time-text">{{route.start_time}} </p>
+        </div>
+        <div class="col-xs-5" style="margin-top: 20px;margin-bottom: 0;">
+            <span ng-show="!hide_dayes_arror" class="col-xs-2 no-padding" ng-click="setNextDate(false)">
+				<i class="fa fa-arrow-right" aria-hidden="true"></i>
+			</span>
+            <div ng-if="route&&route.date" class="col-xs-8 no-padding" style="text-align: center">
+                <span>{{route.date | date: 'dd.MM.y'}} </span>
+            </div>
+            <div ng-if="(!route||!route.date)&&track_date" class="col-xs-8 no-padding">
+                <span>{{track_date | date: 'dd.MM.y'}} </span>
+            </div>
+            <span ng-show="!hide_dayes_arror" class="col-xs-2 no-padding" ng-click="setNextDate(true)">
+				<i  class="fa fa-arrow-left" aria-hidden="true"></i>
+			</span>
+        </div>
+    </div>
+
+    <div class="col-xs-12" style="background: #cbe3eb; margin-top: 5px;font-size: 80%;">
+
+        <div class="col-xs-4 " style="padding: 0px;">
+
+            <b>{{arraylang['car'][selectedlang]}}</b><br>
+
+            <span>{{route.car_type}} </span>
+
+        </div>
+
+        <div class="col-xs-2">
+
+            <b>{{arraylang['hour'][selectedlang]}}</b><br>
+
+            <span>{{route.date | date: 'HH:mm'}} </span>
+
+        </div>
+
+        <!-- <div class="col-xs-4">
+
+			<span class="col-xs-2 no-padding" ng-click="setNextDate(false)"><br><i class="fa fa-arrow-up" aria-hidden="true"></i></i></span>
+
+			<div ng-if="route&&route.date" class="col-xs-8 no-padding">
+				<b>{{arraylang['date'][selectedlang]}}:</b><br>
+
+				<span>{{route.date | date: 'dd.MM.y'}} </span>
+			</div>
+			<div ng-if="(!route||!route.date)&&track_date" class="col-xs-8 no-padding">
+				<b>{{arraylang['date'][selectedlang]}}:</b><br>
+
+				<span>{{track_date | date: 'dd.MM.y'}} </span>
+			</div>
+			
+			<span class="col-xs-2 no-padding" ng-click="setNextDate(true)"><br><i class="fa fa-arrow-down" aria-hidden="true"></i></span>
+			
+		</div> -->
+        <div class="col-xs-2">
+
+            <b>{{arraylang['stops'][selectedlang]}}</b><br>
+
+            <span>{{activeRoutes.length}}/{{stops_num}} </span>
+
+        </div>
+        <div class="col-xs-2">
+
+            <b>הזמנות</b><br>
+
+            <span>{{activeRoutes.length}} </span>
+
+        </div>
+
+
+        <div class="col-xs-2">
+
+            <b>{{arraylang['amount'][selectedlang]}}</b><br>
+
+            <span>{{sum_amount}} </span>
+
+        </div>
+
+    </div>
+
+
+
+    <div class="col-xs-12" style="margin-top: 10px">
+        <!-- <div class="col-xs-12">
+			<p style="text-align:center; #46b687;position: relative;min-height: 1px;padding-left: 7px;padding-right: 7px;color: #2d819e;font-weight: 600;font-size: 20px;" class="">{{arraylang['your_destinations_list_today'][selectedlang]}}:</p>
+		</div> -->
+        <div class="col-xs-12">
+            <div class="col-xs-10">
+                <!-- efrat -->
+                <!-- <form action="" class="search-form">
+	                <div class="form-group has-feedback">
+	            		<label for="search" class="sr-only">Search</label>
+	            		<input type="text" class="form-control" name="search" id="search" placeholder="חפש" ng-model="searchStop">
+	              		<span class="fa fa-search form-control-feedback"></span>
+	            	</div>
+	            </form> -->
+            </div>
+            <!-- <button ng-disabled="!route.start_time"  ng-click="openModal('autocomplete_customers',stop);$event.stopPropagation();" class="circle-urgency uncheck-btn" ><i class="fas fa-plus"></i></button> -->
+            <div class="col-xs-2">
+                <button ng-if="current_user.add_order_from_app" ng-click="openModal('autocomplete_customers',stop);$event.stopPropagation();" class="circle-urgency uncheck-btn"><i class="fas fa-plus"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RUTEL drag and drop in order to reorder the stops by the drivers -->
+    <div class="col-xs-12 no-padding stops-container" >
+
+        <!-- <div  ng-click="!route.start_time||stopClick(stop.id)"  class="col-xs-12 t-tr"  ng-repeat="stop in activeRoutes" style="color: #4C566A;"> -->
+        <!-- RUTEL drag and drop in order to reorder the stops by the drivers -->
+         <div class="no_route_message_class" id="no_route_message"></div>
+        <div class="col-xs-12 dnd-scroll-area" style="display: none" dnd-scroll-area dnd-region="bottom" dnd-scroll-container="activeStopsList"></div>
+        <ul id="activeStopsList" class="col-xs-12 no-padding drop-ul move-btn ul-a " dnd-list="activeRoutes">
+
+            <li ng-click="!route.start_time||stopClick(stop.id)" ng-if="!stop.parent_order"  class="col-xs-12 t-tr drag" ng-repeat="stop in activeRoutes | filter : searchStop" style="color: #4C566A;padding: 10px!important;">
+
+                <div class="col-xs-12 no-padding">
+
+                    <div class="col-xs-1 no-padding ">
+
+                            <span class="circle-number" ng-bind="stop.stop_index+1" dnd-draggable="stop" dnd-dragstart="drag(event)" dnd-effect-allowed="move" dnd-moved="selfReOrder&&activeRoutes.splice($index, 1);onDrop(activeRoutes, item, index);" dnd-disable-if="!selfReOrder"></span>
+
+                            <span ng-if="stop.parent_order" class="circle-number"><i class="fa fa-paperclip" aria-hidden="true"></i></span>
+                    </div>
+
+                    <div class="col-xs-9  no-padding">
+                        <div class="col-xs-12 no-padding">
+                            <div class="col-xs-2 no-padding">
+                                <span ng-show="show_cash"  style="font-weight: 600;margin-right: 7px;color: #eb584a;">{{stop.customer_name.includes("מזומן")?"₪":""}}</span>
+                                <span  style="font-weight: 600;margin-right: 7px;color: #eb584a;"><i style="float: left;" class="far fa-bell" ng-if="stop.customer.address_note||stop.address_note"  title="{{stop.customer.address_note ? stop.customer.address_note : stop.address_note}}"></i></span>
+                            </div>
+                            <div class="col-xs-10 no-padding">
+                                <span class="col-xs-10 no-padding" ng-if="selfReOrder" dnd-draggable="stop" dnd-dragstart="drag(event)" dnd-effect-allowed="move" dnd-moved="selfReOrder&&activeRoutes.splice($index, 1);onDrop(activeRoutes, item, index);" dnd-disable-if="!selfReOrder" style="font-weight: 600;margin-right: 7px">{{stop.customer_name}} - {{stop.city ? stop.street+' '+stop.number+' , '+stop.city : stop.address}}</span>
+                                <span class="col-xs-10 no-padding" ng-if="!selfReOrder" style="font-weight: 600;margin-right: 7px">{{stop.customer_name}} - {{stop.street}} {{stop.number}} {{stop.city}}
+                                </span>
+                                
+                                <span ng-if="stop.status==4" ><i aria-hidden="true" style="color:#eb584a" class="fa fa-exclamation-triangle"></i></span>
+                                
+                            </div>    
+                        </div>
+                        
+                        <span ng-if="stop.customer.time_windows.length" class="col-xs-12 no-padding time-windows-span">
+                            <span ng-bind="stop.customer.time_windows[0].earliest"></span><span>-</span><span ng-bind="stop.customer.time_windows[0].latest"></span>
+                        </span>
+                    </div>
+
+                    <div class="col-xs-2 no-padding center">
+                        <!--<span style="background: #d3d7db;" ng-bind="getArrTime(stop.arr_time)"></span></br>-->
+                        <span class="col-xs-12 no-padding" ng-bind="getArrTime(stop.arr_time)"></span>
+                        
+                        <span ng-if="amount_option" class="col-xs-12 no-padding">
+                            <span class="col-xs-6 no-padding">{{arraylang['short_amount'][selectedlang]}}-{{stop.amount}}</span>
+                            <span ng-show="amount_option" class="col-xs-6 no-padding circle-number" ng-class="{ 'mixed-circle': stop.is_parent&&stop.has_multi_groups} " ng-style="{'background':(getOrderDetail(stop.orders_details, 'תאור קבוצה', stop).includes('קפוא')?'blue':'green')}" style="color:white;float:left;margin-left: 0px;"> 
+                                <span ng-if="!stop.is_parent || stop.is_parent&&!stop.has_multi_groups" style="font-size: 13px">{{(getOrderDetail(stop.orders_details, 'תאור קבוצה', stop).includes('קפוא')?arraylang['short_frozen'][selectedlang]:arraylang['short_cool'][selectedlang]) }}
+                                    </span>
+                                <span ng-if="stop.is_parent&&stop.has_multi_groups"  style="font-size: 13px">{{arraylang['short_multi_groups'][selectedlang]}}
+                                </span>
+                            </span>
+                        </span> 
+                    </div>
+
+                </div>
+
+                <div class="col-xs-12 no-padding">
+
+
+
+                    <div class="col-xs-2">
+
+                        <button ng-show="v_option" ng-disabled="!route.start_time||requier_photo||requier_sign||requier_surface||pod_option" ng-click="openModal('get',stop);$event.stopPropagation();" class="circle-urgency check-btn"><i class="fa fa-check"></i>
+                            
+                        </button>
+
+                    </div>
+
+                    <div class="col-xs-2">
+
+                        <button ng-show="x_option" ng-disabled="!route.start_time||pod_option" ng-click="openModal('no-get',stop);$event.stopPropagation();" class="circle-urgency uncheck-btn"><i class="fa fa-remove"></i></button>
+
+                    </div>
+
+                    
+                    <div class="col-xs-2 no-padding">
+
+                        <button ng-if="current_user.grouping_stations" ng-disabled="!route.start_time" ng-click="createStopsUnit(stop);$event.stopPropagation();" class="circle-urgency">+{{stop.customer.group_index?stop.customer.group_index:''}}</button>
+                        <button ng-show="thumbtack_option" ng-if="current_user.marking_as_starting_station" ng-disabled="!route.start_time" ng-click="thumbtackStop(stop);$event.stopPropagation();" class="circle-urgency"><i class="fa fa-thumb-tack"  ng-style="{'color':stop.customer.thumbtack?'#f45a4e':'#2d819e'}" ></i></button>
+
+                    </div>
+                    <div class="col-xs-2 no-padding">
+
+                        <a href="tel:{{stop.phone}}" ng-click="$event.stopPropagation();"><button ng-disabled="!route.start_time"  class="circle-urgency phone-btn" ><i class="fa fa-phone"></i></button></a>
+
+                    </div>
+
+                    <div class="col-xs-4 no-padding">
+
+                        <button ng-if="isIOS()" ng-disabled="!route.start_time" ng-click="navigate(stop,1);$event.stopPropagation();" class="circle-urgency"><img src="img/navigate.png"></button>
+                        
+                        <button ng-disabled="!route.start_time" ng-click="navigate(stop,2);$event.stopPropagation();" class="circle-urgency"><img src="img/waze.png"></button>
+                    </div>
+
+                </div>
+
+            </li>
+
+        </ul>
+        <div class="col-xs-12 dnd-scroll-area" style="display: none" dnd-scroll-area dnd-region="top" dnd-scroll-container="activeStopsList"></div>
+
+        <div ng-click="stopClick(stop.id)" class="col-xs-12 t-tr" ng-repeat="stop in nonactiveRoutes" ng-style="{'backgroundColor':stop.status==1?'':'#e3e5e8'}" style="color: #4C566A;">
+
+            <div class="col-xs-6" style="font-size: 16px;font-weight: 600;padding: 8px;">
+
+                <div class="circle-number">
+
+                    <span ng-bind="stop.stop_index+1"></span>
+
+                </div>
+
+                {{stop.customer_name}} - {{stop.street}} {{stop.number}} {{stop.city}} -
+
+                <span style="background: #d3d7db;" ng-bind="getArrTime(stop.arr_time)"></span>
+
+            </div>
+
+            <div class="col-xs-3" style="text-align: center;font-size: 20px;font-weight: 600;" class=""><img src="img/{{stop.status==1?'V':'X'}}.svg"></div>
+
+            <div class="col-xs-3" style="text-align: center;font-size: 20px;font-weight: normal;" class=""><span>{{stop.status==1?'נמסר':'לא נמסר'}}</span></div>
+
+
+
+        </div>
+    </div>
+</div>
+
+<!-- <table style="padding: 0 18px !important;width: 100%;">
+
+		 <thead >
+
+			<tr style="height: 32px;font-size: 18px;">
+
+				<td style="text-align: center;">{{arraylang['customer_address'][selectedlang]}}</td>
+
+				<td style="min-width: 80px;text-align: center;    border-right: solid 5px white;    border-left: solid 5px white;">{{arraylang['estimated_time'][selectedlang]}}</td>
+
+				<td style="min-width: 100px;text-align: center;"></td>
+
+			</tr>
+
+		</thead> 
+
+		<tbody>
+
+			<tr ng-click="stopClick(stop.id)"  class="t-tr" ng-repeat="stop in activeRoutes" style="color: #4C566A;">
+
+				<td class="" style="border-bottom: solid #cbcdd0 2px;font-size: 16px;font-weight: 600;padding: 8px;">
+
+					<div class="circle-number">
+
+						<span ng-bind="stop.stop_index+1"></span>
+
+					</div>
+
+					{{stop.customer_name}} - {{stop.street}} {{stop.number}} {{stop.city}} - 
+
+					<span style="background: #d3d7db;" ng-bind="getArrTime(stop.arr_time)"></span>
+
+				</td>
+
+				<td  style="border-bottom: solid #cbcdd0 2px;min-width: 100px;text-align: center;font-size: 30px;font-weight: normal;" class="" ><span>{{stop.estimatedTime}}</span></td>
+
+				<td style="border-bottom: solid #cbcdd0 2px;min-width: 115px;text-align: center;font-size: 30px;font-weight: normal;" class="">
+
+					<span  ng-click="waze(stop);$event.stopPropagation();" class="circle-urgency" ><img src="img/waze.png"></span>
+
+					<span  ng-click="checkStop(stop,true);$event.stopPropagation();" class="circle-urgency" ><i class="fa fa-check"></i></span>
+
+					<span  ng-click="checkStop(stop,false);$event.stopPropagation();" class="circle-urgency" ><i class="fa fa-remove"></i></span>
+
+					<span ng-if="current_user.marking_as_starting_station" ng-click="thumbtackStop(stop);$event.stopPropagation();" class="circle-urgency" ><i class="fa fa-thumb-tack"  ng-style="{'color':stop.customer.thumbtack?'#f45a4e':'#2d819e'}" ></i></span>
+
+					<span ng-if="current_user.grouping_stations" ng-click="createStopsUnit(stop);$event.stopPropagation();" class="circle-urgency" >+{{stop.customer.group_index?stop.customer.group_index:''}}</span>
+
+
+
+					
+
+				</td>
+
+			</tr>
+
+			<tr  ng-click="stopClick(stop.id)"  class="t-tr" ng-repeat="stop in nonactiveRoutes"  ng-style="{'backgroundColor':stop.status==1?'':'#e3e5e8'}" style="color: #4C566A;">
+
+				<td class="" style="border-bottom: solid #cbcdd0 2px;font-size: 16px;font-weight: 600;padding: 8px;">
+
+					<div class="circle-number">
+
+						<span ng-bind="stop.stop_index+1"></span>
+
+					</div>
+
+					{{stop.customer_name}} - {{stop.street}} {{stop.number}} {{stop.city}} - 
+
+					<span style="background: #d3d7db;" ng-bind="getArrTime(stop.arr_time)"></span>
+
+				</td>
+
+				<td  style="border-bottom: solid #cbcdd0 2px;min-width: 80px;text-align: center;font-size: 20px;font-weight: 600;" class=""><img ng-src="img/{{stop.status==1?'V':'X'}}.svg"  ></td>
+
+				<td style="border-bottom: solid #cbcdd0 2px;min-width: 100px;text-align: center;font-size: 20px;font-weight: normal;" class=""><span>{{stop.status==1?'נמסר':'לא נמסר'}}</span></td>
+
+			</tr>
+
+		</tbody>
+
+	</table> -->
+<!-- </div> -->
+
+<div id="access_required" class="modal" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header" style="text-align:left;">
+                <button type="button" class="close" ng-click="logout()">
+					התנתק
+				</button>
+            </div>
+            <div class=" modal-body ">
+                <p id="resource_allow_access" class="center ">
+                </p>
+            </div>
+            <div class="modal-footer " style="text-align:center;">
+                <a id="howToAllow" target="_blank " href="" type="button " class="btn btn-info " data-dismiss="modal " ng-click=" ">
+					איך לאפשר גישה?
+				</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="LogoutConfirm" class="modal " role="dialog ">
+    <div class="modal-dialog ">
+        <!-- Modal content-->
+        <div class="modal-content ">
+            <div class="modal-header ">
+                <button type="button" class="close" data-dismiss="modal">
+					&times;
+				</button>
+            </div>
+            <div class="modal-body ">
+                <p class="center ">
+                    {{arraylang['sure_want_sign_out'][selectedlang]}}?
+                </p>
+            </div>
+            <div class="modal-footer ">
+                <button type="button " class="btn btn-default " data-dismiss="modal " ng-click="logout() ">
+					{{arraylang['sign_out'][selectedlang]}}
+				</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button id="closeStopsUnit " style="display: none " data-toggle="modal " data-target="#stopsUnitModal "></button>
+
+<div id="stopsUnitModal " class="modal " role="dialog ">
+
+    <div class="modal-dialog ">
+
+
+
+        <!-- Modal content-->
+
+        <div class="modal-content ">
+
+            <div class="modal-header ">
+
+                <button type="button " class="close " data-dismiss="modal ">
+
+					&times;
+
+				</button>
+
+                <p class="center modal-title ">
+
+                    {{arraylang['merge_stops'][selectedlang]}}
+
+                </p>
+
+
+
+            </div>
+
+            <div class="modal-body ">
+
+
+
+                <p class="center ">
+
+                    <p>{{arraylang['want_to_add_stops_to_group'][selectedlang]}}?</p>
+
+                </p>
+
+
+
+            </div>
+
+            <div class="modal-footer ">
+
+                <div class="col-xs-offset-2 col-xs-4 ">
+
+                    <button type="button " class="btn btn-default " ng-click="closeStopsUnit() " data-dismiss="modal ">
+
+						{{arraylang['no'][selectedlang]}}
+
+					</button>
+
+                </div>
+
+                <div class="col-xs-4 ">
+
+                    <button type="button " class="btn btn-default " data-dismiss="modal ">
+
+						{{arraylang['yes'][selectedlang]}}
+
+					</button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+    </div>
+
+</div>
+<!-- Modal at click on Red-x on stop-->
+<div id="autocomplete_customers " class="modal fade " role="dialog ">
+    <div class="modal-dialog ">
+
+        <!-- Modal content-->
+        <div class="modal-content ">
+            <form name="addCustomerForm " id="addCustomerForm " ng-submit="addCustomerForm.$invalid || addToRoute() ">
+
+                <div class="modal-header ">
+                    <h3 style="text-align: center ">{{arraylang['add_to_route_header'][selectedlang]}}</h3>
+                </div>
+
+                <div class="modal-body ">
+
+                    <div mass-autocomplete>
+                        <input id="atocmplt " ng-model="searchText.value " required mass-autocomplete-item="autocomplete_options ">
+                    </div>
+
+                </div>
+                <div class="modal-footer ">
+
+
+                    <button type="submit " class="btn skip-btn ">
+						{{arraylang['add_to_route'][selectedlang]}}
+					</button>
+                    <button type="button " class="btn skip-btn not-skip-btn " data-dismiss="modal ">
+						{{arraylang['cancel'][selectedlang]}}
+						<img src="img/X_white.svg ">
+					</button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+<div id="no-get " class="modal fade " role="dialog ">
+    <div class="modal-dialog ">
+
+        <!-- Modal content-->
+        <div class="modal-content ">
+            <form name="skippingForm " id="skippingForm " ng-submit="skippingForm.$invalid || checkStop(checked_stop,false) ">
+
+                <div class="modal-header ">
+                    <img src="img/sad_face.svg " class="face-modal " style=" " />
+                </div>
+                <div class="modal-body ">
+
+                    <p class="center " style=" ">
+                        {{arraylang['sure_skip_this_station'][selectedlang]}}?
+                    </p>
+                    <textarea ng-if="current_user.app_require_remarks " required ng-model="$parent.remarks " placeholder="{{arraylang[ 'why_dont'][selectedlang]}} " style="font-size:18px; height: 100px;margin-bottom: 0;margin-top: 6px; "></textarea>
+                    <textarea ng-if="!current_user.app_require_remarks " ng-model="$parent.remarks " placeholder="{{arraylang[ 'why_dont'][selectedlang]}} " style="font-size:18px; height: 100px;margin-bottom: 0;margin-top: 6px; "></textarea>
+                </div>
+                <div class="modal-footer ">
+
+                    <button type="submit " class="btn skip-btn ">
+						{{arraylang['yes'][selectedlang]}},{{arraylang['skip'][selectedlang]}}!
+						<img src="img/V_white.svg " >
+					</button>
+                    <button type="button " class="btn skip-btn not-skip-btn " data-dismiss="modal ">
+						{{arraylang['cancel'][selectedlang]}}
+						<img src="img/X_white.svg ">
+					</button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+<!-- Modal at click on Green-x on stop-->
+<div id="get " class="modal fade " role="dialog ">
+    <div class="modal-dialog ">
+
+        <!-- Modal content-->
+        <div class="modal-content ">
+            <form name="deliveryForm " id="deliveryForm " ng-submit="deliveryForm.$invalid || checkStop(checked_stop,true); ">
+
+                <div class="modal-header ">
+                </div>
+                <div class="modal-body ">
+
+                    <p class="center " style=" ">
+                        {{arraylang['report_delivery'][selectedlang]}}
+                    </p>
+                    <textarea ng-model="remarks " placeholder="{{arraylang[ 'why_dont'][selectedlang]}} " style="font-size:18px; height: 100px;margin-bottom: 0;margin-top: 6px; "></textarea>
+                </div>
+                <div class="modal-footer ">
+
+                    <button type="submit " class="btn skip-btn ">
+						{{arraylang['confirm'][selectedlang]}}
+						<img src="img/V_white.svg " >
+					</button>
+                    <button type="button " class="btn skip-btn not-skip-btn " data-dismiss="modal ">
+						{{arraylang['cancel'][selectedlang]}}
+						<img src="img/X_white.svg ">
+					</button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>
+<!-- Modal -->
+<div id="disgitalSignatureModal " class="modal fade " role="dialog ">
+    <div class="modal-dialog ">
+        <!-- Modal content-->
+        <div class="modal-content ">
+            <div class="modal-header ">
+                <h3 class="modal-title ">חתימה דיגיטלית</h3>
+            </div>
+            <div class="modal-body ">
+
+                <div id="pdf_container " class="col-xs-12 ">
+                    <!-- <iframe ng-if="sign_file " src={{sign_file}} id="pdf_frame "  width="100% " height="100% "></iframe> -->
+                    <!-- <canvas  class="col-xs-12 no-padding " id="the-canvas "></canvas> -->
+                </div>
+                <div class="col-xs-12 ">
+                    <textarea class="col-x-12 " ng-model="remarks " placeholder="{{arraylang[ 'remarks'][selectedlang]}}? " style="font-size:18px; height: 50px;margin-bottom: 0;margin-top: 6px;border: 1px solid rgb(70, 182, 135); "></textarea>
+                </div>
+                <div class="col-xs-12 ">
+                    <textarea class="col-x-12 " ng-model="returns " placeholder="פירוט החזרות מלקוחות " style="font-size:18px; height: 50px;margin-bottom: 0;margin-top: 6px;border: 1px solid rgb(70, 182, 135); "></textarea>
+                </div>
+                <div class="col-xs-12 ">
+                    <div style="border: 1px solid #46b687; " ng-style="{ 'max-width': boundingBox.width + 'px', 'max-height': boundingBox.height + 'px'} ">
+                        <signature-pad id="signature " accept="accept " clear="clear " height="220 " width="568 " dataurl="dataurl "></signature-pad>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer ">
+                <button class="btn " ng-click="clear() ">נקה חתימה</button>
+                <button class="btn " ng-click="init_sign=false;sign() " data-dismiss="modal ">שלח חתימה</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+<!-- Modal-pallet-collection -->
+<div id="collectingPalletsModal " class="modal fade " role="dialog ">
+    <div class="modal-dialog ">
+
+        <!-- Modal content-->
+        <div class="modal-content ">
+            <div class="modal-header ">
+                <div class="col-xs-12 ">
+                    <h3 class="modal-title " style="text-align: center "><span>{{arraylang['report_pallet_collection'][selectedlang]}}</span></h3>
+                </div>
+                <div class="col-xs-12 ">
+                    <span class="col-xs-2 col-xs-offset-2 "><i ng-class="{ 'text-confirm': big_pallets , 'text-secondary': !big_pallets} " class="fas fa-pallet " style="font-size: 25px " ng-click="small_pallets=0;big_pallets=1; "></i></span>
+                    <span class="col-xs-4 col-xs-offset-4 "><i ng-class="{ 'text-confirm': small_pallets , 'text-secondary': !small_pallets} " class="fas fa-pallet " style="font-size: 10px " ng-click="big_pallets=0;small_pallets=1; "></i></span>
+                </div>
+            </div>
+            <form name="palletsForm " id="palletsForm ">
+                <div class="modal-body ">
+                    <div class="col-xs-12 ">
+                        <span ng-if="!big_pallets && !small_pallets ">{{arraylang['choose_pallet'][selectedlang]}}</span>
+                        <span ng-if="big_pallets==1||small_pallets==1 ">{{arraylang['total_pallets'][selectedlang]}}
+							<span ng-if="big_pallets==1 ">{{arraylang['big'][selectedlang]}}</span>
+                        <span ng-if="small_pallets==1 ">{{arraylang['small'][selectedlang]}}</span> :
+                        </span>
+                    </div>
+                    <div class="col-xs-12 " ng-if="small_pallets==1 ">
+                        <div class="col-xs-4 ">
+                            <button class="btn add-pallets-btn " ng-click="current_stop.small_pallets=c urrent_stop.small_pallets!=undefined ? current_stop.small_pallets+1 : 0 ">
+									<span><i class="fa fa-plus " aria-hidden="true "></i></span>
+								</button>
+                        </div>
+                        <div class="col-xs-4 " style="text-align: center "><span ng-if="current_stop.small_pallets!=undefined ">{{current_stop.small_pallets}}</span></div>
+                        <div class="col-xs-4 ">
+                            <button class="btn add-pallets-btn " ng-click="current_stop.small_pallets=c urrent_stop.small_pallets ? current_stop.small_pallets-1 : current_stop.small_pallets ">
+									<span><i class="fa fa-minus " aria-hidden="true "></i></span>
+								</button>
+                        </div>
+
+                    </div>
+                    <div class="col-xs-12 " ng-if="big_pallets==1 ">
+                        <div class="col-xs-4 ">
+                            <button class="btn add-pallets-btn " ng-click="current_stop.big_pallets=c urrent_stop.big_pallets!=undefined ? current_stop.big_pallets+1 : 0 ">
+								<span><i class="fa fa-plus " aria-hidden="true "></i></span>
+							</button>
+                        </div>
+                        <div class="col-xs-4 " style="text-align: center "><span ng-if="current_stop.big_pallets!=undefined ">{{current_stop.big_pallets}}</span></div>
+                        <div class="col-xs-4 ">
+                            <button class="btn add-pallets-btn " ng-click="current_stop.big_pallets=c urrent_stop.big_pallets ? current_stop.small_pallets-1 : current_stop.big_pallets ">
+								<span><i class="fa fa-minus " aria-hidden="true "></i></span>
+							</button>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer ">
+                    <div class="col-xs-12 ">
+                        <button class="col-xs-4 col-xs-offset-4 btn skip-btn report-pallets-btn " ng-click="reportCollectingPallets() ">
+							{{arraylang['confirm'][selectedlang]}}
+						</button>
+                    </div>
+                    <div class="col-xs-12 ">
+                        <span ng-if="invalid_reporting==1 " class="modal-err-msg ">{{arraylang['report_not_valid'][selectedlang]}}</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+    </div>
+</div>

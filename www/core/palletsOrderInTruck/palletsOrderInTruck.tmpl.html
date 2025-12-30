@@ -1,0 +1,93 @@
+<style>
+		.cooledSurface{
+		background-color: #badfba;
+	}
+
+	.frozenSurface{
+		background-color: lightsteelblue;
+	}
+
+	.slightly-frozen{
+		background-color: #e8da91 !important;
+	}
+
+	.slightly-cooled{
+		background-color: #e4b19a !important;
+	}
+</style>
+<div id="loading" style="background-color:white; width:100%; height:100vh;" >
+	<div class="wrap_loader">
+		<div class="gauge-loader"></div>
+		<p style="display:block;width:100%" class="load_txt">
+			{{arraylang['loading'][selectedlang]}}...
+		</p>
+	</div>
+</div>
+
+
+<div id="nonloading" style="font-size: 13px !important">
+  <div id="logo" class="col-xs-12 logo" ><!-- style="width:100%; height:50px;" -->
+		<div class="col-xs-4">
+			<img ng-click="goBack()" src="img/back.svg" class="top-right">
+		</div>
+		<div class="col-xs-4 no-padding">				
+				<img src="img/LOGO.svg" class="logo-img">
+		</div>
+		
+  </div>
+
+  <div class="table-container col-xs-12">
+  	<div class="col-xs-12">
+			<span   type="button" class="col-xs-3 btn btn-default top-left" style="width: 30px  !important" ng-click="addTrow()">+</span>
+  		  	<p class="col-xs-9" style="text-align: center;font-size: 22px;color: #2D819E"> {{arraylang['pallet_self_order'][selectedlang]}} <span style="font-weight: 700">{{current_user.name}}</span></p>
+  			<span  class="circle-urgency" ><i class="fa fa-truck"  ></i></span> 
+  	</div>
+	<div class="col-xs-12 dnd-scroll-area" style="display: none" dnd-scroll-area dnd-region="bottom" dnd-scroll-container="surfacesList"></div>
+		<ul id="surfacesList" class="col-xs-12 no-padding drop-ul ul-a " dnd-list="truckOrder"  dnd-horizontal-list="true">
+		<!-- <div class="col-xs-12"> -->
+			
+			<li class="col-xs-6 no-padding drag" style="height:150px;border:1px solid #5d5e62;border-radius: 5px; " ng-repeat="(listName, list) in truckOrder" dnd-draggable="list"  dnd-effect-allowed="move" dnd-dragstart="onDrag(listName)" dnd-moved="onDrop(truckOrder, list, $index);">
+				<!-- dnd-dragstart="drag(event)" -->
+				<div>
+					<div class="panel panel-info">
+						<div class="col-xs-12 surfaceNum"  ng-if="list.length" 
+							ng-class="{'cooledSurface': (list[0].order_item&&list[0].order_item.type==3)||list[0].special_surface.includes('מצונן')||getOrderDetail(list[0].orders_details, 'תאור קבוצה', list[0]).includes('מצונן') , 'frozenSurface': ((list[0].order_item&&list[0].order_item.type==1))||list[0].special_surface.includes('קפוא')||getOrderDetail(list[0].orders_details, 'תאור קבוצה', list[0]).includes('קפוא'), 'slightly-frozen': ((list[0].order_item&&list[0].order_item.type==2)), 'slightly-cooled': ((list[0].order_item&&list[0].order_item.type==4))}">
+							<div class="col-xs-12" style="text-align: center;font-weight: 600;">
+								{{list[0].surfacing_num}}
+							</div>		
+						</div>
+						<div class="col-xs-12 surfaceNum"  ng-if="!list.length" >
+							<div class="col-xs-12" style="text-align: center;font-weight: 600;">
+								{{list.surfacing_num}}
+							</div>
+						</div>
+						<div class="col-xs-12 no-padding" ng-repeat="order in list" ng-if="order.is_parent_item">
+
+								<div class="col-xs-6 no-padding" >
+									{{order.stop_index+1}} # {{order.customer_name}}
+								</div>
+								
+								<div class="col-xs-2 no-padding">
+									{{order.city}}
+								</div>
+								<div class="col-xs-2 no-padding" ng-class="{'splitted-order':order.splittings_num}">
+									{{order.total_amount}}
+								</div>
+								<div class="col-xs-2 no-padding">
+									{{(order.special_surface)}}
+								</div>
+								<!-- <div class="col-xs-1 no-padding" ng-bind="getStopNum(order)"> -->
+									
+						</div>
+					</div>	
+				</div>
+			</li>
+			<div class="clearfix" style="height:150px;background-color: #ddd;border-radius: 5px; " ng-if="$even"></div>
+
+		</ul>
+	</div>
+	<div class="col-xs-12">
+		<button class="start-btn" style="font-size: 14px;padding: 0px;" ng-click="saveTrackTemplate()">{{arraylang['save'][selectedlang]}}
+			<i class="fa fa-lock" aria-hidden="true" ></i></button>
+	</div>
+  </div>

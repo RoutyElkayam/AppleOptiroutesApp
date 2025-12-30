@@ -1,0 +1,932 @@
+<div id="loading" style="background-color:white; width:100%; height:100vh;">
+    <div class="wrap_loader">
+        <div class="gauge-loader"></div>
+        <p style="display:block;width:100%" class="load_txt">
+            {{arraylang['loading'][selectedlang]}}...
+        </p>
+    </div>
+</div>
+
+
+<div id="nonloading">
+    <!-- <div id="mymap" class="mymap"></div> -->
+    <div id="logo" class="col-xs-12 no-padding logo">
+        <div class="col-xs-4 no-padding">
+            <img ng-click="goBack()" src="img/back.svg" class="top-right">
+        </div>
+        <div class="col-xs-4 no-padding">
+            <img src="img/LOGO.svg" class="logo-img" ng-click="manageVersions()">
+        </div>
+        <div class="col-xs-3 col-xs-offset-1 no-padding" style="margin-top: 4px;">
+            <div class="col-xs-4 no-padding" style="height: 60px;" ng-click="zoomIn(false)">
+                <span type="button" class="col-xs-12 top-left zoom-button"  style="font-size: 12px;">
+                    <i class="fa fa-font fa-1x" aria-hidden="true" style="margin: 10px 4px 0px 4px;font-size: 14px;"></i>
+                </span>
+            </div>
+            <div class="col-xs-7" style="padding-right: 10px;padding-left: 5px;height: 60px;" ng-click="zoomIn(true)">
+                <span type="button" class="col-xs-12 top-left zoom-button"  >
+                    <i class="fa fa-font fa-1x" aria-hidden="true" style="margin: 8px 2px 0px 2px;font-size: 20px;"></i>
+                </span> 
+            </div>
+        </div>
+    </div>
+    <div class="location-failure" ng-if="locationFailure">
+        {{arraylang['could_not_identify_your_location'][selectedlang]}}</div>
+
+    <div class="location-failure" ng-if="!pod_files">
+        {{arraylang['files_have_not_loaded_yet'][selectedlang]}}</div>
+
+
+    <!--<div id="mymap" class="map" width="600" height="450" frameborder="0" style="border:0" allowfullscreen></div>-->
+    <div class="box details col-xs-10 col-xs-offset-1">
+
+        <div class="col-xs-12 no-padding" style="background-color: #46B687;height: 54px;color: white;padding: 4% 0;border-radius: 5px;">
+            <div class="detail-img"><img src="img/map.svg" style="width: 20px;"></div>
+            <div class="detail-text">
+                <span style="font-weight: 600;color: white;">{{current_stop.street}} {{current_stop.number}}
+					{{current_stop.city}}</span>
+            </div>
+        </div>
+        <div class="col-xs-12 no-padding detail-line bottom-border-detail">
+            <div class="detail-img" style=""><img src="img/client.svg"></div>
+            <div class="detail-text" style="">
+                <span class="bold-text" style="">{{arraylang['customer_name'][selectedlang]}}:</span>
+                <span> {{current_stop.customer_name}}</span>
+            </div>
+        </div>
+        <div class="col-xs-12 no-padding detail-line bottom-border-detail">
+            <div class="detail-img" style=""><img src="img/phone.svg"></div>
+            <div class="detail-text" style="">
+                <span class="bold-text" style="">{{arraylang['phone'][selectedlang]}}:</span>
+                <span> {{current_stop.phone}}</span>
+            </div>
+        </div>
+        <div class="col-xs-12 no-padding detail-line bottom-border-detail">
+            <div class="detail-img" style=""><img src="img/slack.svg"></div>
+            <div class="detail-text" style="">
+                <span class="bold-text" style="">{{arraylang['order_number'][selectedlang]}}:</span>
+                <span> {{current_stop.num_order}}</span>
+            </div>
+        </div>
+        <div class="col-xs-12 no-padding detail-line bottom-border-detail">
+            <div class="detail-img" style=""><img src="img/clock.svg"></div>
+            <div class="detail-text" style="">
+                <span class="bold-text" style="">{{arraylang['order_time'][selectedlang]}}:</span>
+                <span> {{getArrTime(current_stop.arr_time)}}</span>
+            </div>
+        </div>
+        <div ng-if="current_stop.customer.time_windows.length" class="col-xs-12 no-padding detail-line bottom-border-detail">
+            <div class="detail-img" style=""><img src="img/clock.svg"></div>
+            <div class="detail-text" style="">
+                <span class="bold-text" style="">{{arraylang['opening_time'][selectedlang]}}:</span>
+                <span> {{current_stop.customer.time_windows[0].earliest}}</span>
+            </div>
+        </div>
+        <div ng-if="current_stop.customer.time_windows.length" class="col-xs-12 no-padding detail-line bottom-border-detail">
+            <div class="detail-img" style=""><img src="img/clock.svg"></div>
+            <div class="detail-text" style="">
+                <span class="bold-text" style="">{{arraylang['closing_time'][selectedlang]}}:</span>
+                <span> {{current_stop.customer.time_windows[0].latest}}</span>
+            </div>
+        </div>
+        <div ng-repeat="remark in marked_columns" class="col-xs-12 no-padding detail-line bottom-border-detail">
+            <span class="detail-img"><i class="fa fa-comment" aria-hidden="true"></i></span>
+            <div class="detail-text" style="">
+                <span class="bold-text" style="" ng-bind="remark[0]"></span><span class="bold-text">:</span>
+                <span ng-if="remark[2]" ng-bind="remark[2]"></span>
+                <span ng-bind="remark[1]"></span>
+                
+            </div>
+        </div>
+        <div class="col-xs-12 no-padding detail-line bottom-border-detail">
+            <div class="detail-img" style=""><img src="img/remark.svg"></div>
+            <div class="detail-text" style="">
+                <span class="bold-text" style="">{{arraylang['remarks'][selectedlang]}}:</span>
+                <span> {{current_stop.remarks}}</span>
+            </div>
+        </div>
+
+        <!-- pod -->
+        <div ng-if="!documentation.start_hour&&current_user.arrival_reporting_app" class="col-xs-12  no-padding" style="width:100%; height:135px;background-color: #46b687;">
+            <div class="col-xs-12 no-padding" style="    color: white;text-align: center;font-size: 20px;padding-top: 5%;font-weight: 600;">
+                <!-- <i class="fa fa-home" ></i>{{arraylang['arrived_customer'][selectedlang]}} ? -->
+            </div>
+            <div class="col-xs-12 no-padding" style="margin-top: 3%;padding: 0px 22px;">
+                <div class="col-xs-6 no-padding">
+                    <button class="waze-btn" ng-click="startDocumentation()" style="color: #4C576B;background-color: white;font-weight: 600;">
+                        {{arraylang['arrived'][selectedlang]}}!
+                        <img src="img/V.svg">
+                    </button>
+                </div>
+                <div class="col-xs-6 no-padding">
+                    <button class="waze-btn" data-toggle="modal" data-target="#no-get" style="float: left;color: #4C576B;background-color: white;font-weight: 600;  ">
+                        {{arraylang['not_arrive'][selectedlang]}}!
+                        <img src="img/X.svg">
+                    </button>
+                </div>
+            </div>
+        </div>
+    
+        <!-- delivery -->
+        <div class="col-xs-12 no-padding" style="text-align: center;">
+            <span style="color: #2d819e;font-size: 14px;font-weight: 700;">{{arraylang['delivery_shipments'][selectedlang]}}</span>
+        </div>
+        <div ng-repeat="order in sub_customer_orders" ng-if="documentation.start_hour||!current_user.arrival_reporting_app" class="bottom-border-detail  col-xs-12 no-padding" style="width:100%; height:60px;">
+            <div class="col-xs-12 no-padding" style="margin-top: 3%;">
+                <!-- <div class="col-xs-3">
+                    <span style="color: #2d819e;font-size: 14px;" ng-bind="order.num_order.slice(-5)"></span>
+                </div> -->
+                <!-- <div class="col-xs-3 no-padding">
+                    <button class="waze-btn delivered-btn"  ng-click="markComplete(order)">
+                        {{arraylang['deliver'][selectedlang]}}!
+                        <img src="img/VDelivered.svg">
+                    </button>
+                </div>
+                <div class="col-xs-3 no-padding">
+                    <button  ng-click="current_stop=order" data-toggle="modal" data-target="#no-get" class="waze-btn undelivered-btn" style="float: left;">
+                        {{arraylang['not_deliver'][selectedlang]}}!
+                        <img src="img/XDelivered.svg">
+                    </button>
+                </div> -->
+                    <div class="col-xs-4 no-padding">
+                        <button  class="waze-btn " ng-style="{'background-color':order.pod||order.status ? '#46b687':'#CEF3FF','color':order.pod||order.status ? 'white':'#2d819e'}">
+                            <div class="col-xs-10 no-padding" style="font-size: 13px;" ng-click="openPodFilePreview()">
+                                <span>{{arraylang['short_delivery'][selectedlang]}}</span> : <span ng-bind="order.num_order"></span>
+                            </div>
+                            <div class="col-xs-2 no-padding">
+                                <i class="fa fa-gift"></i>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="col-xs-4 no-padding">
+                        <button class="waze-btn" style="background-color: #46B687;"  ng-click="markComplete(order)">
+                            <div class="col-xs-10 no-padding">
+                                <span>{{arraylang['deliver'][selectedlang]}}</span>
+                            </div>
+                            <div class="col-xs-2 no-padding">
+                                <i class="fa fa-check"></i>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="col-xs-4 no-padding">
+                        <button  ng-click="current_stop=order" data-toggle="modal" data-target="#no-get" class="waze-btn" style="background-color:#F45A4E ;">
+                            <div class="col-xs-10 no-padding">
+                                <span>{{arraylang['not_deliver'][selectedlang]}}</span>
+                            </div>
+                            <div class="col-xs-2 no-padding">
+                                <i class="fa fa-xmark"></i>
+                            </div>
+                        </button>
+                    </div>
+
+                <!-- <div class="col-xs-2">
+                    <img ng-if="order.pod" style="margin-right: 10px;" src="img/done.svg">
+                </div> -->
+            </div>
+        </div>
+        <!-- end pod -->
+
+        <div class="col-xs-12 no-padding" style="    margin-bottom: 2%;    margin-top: 6%;">
+            <div class="col-xs-4 no-padding">
+                <button data-toggle="modal" ng-click="pinMap()" data-target="#update-address" class="waze-btn" style="    float: right;  ">
+					{{arraylang['update_customer'][selectedlang]}}
+					<img src="img/map.svg">
+				</button>
+            </div>
+            <div class="col-xs-4 no-padding">
+                <button class="waze-btn">
+					<a href="tel:{{current_stop.phone}}"
+						style="color: white !important;">{{arraylang['call_the_customer'][selectedlang]}}</a>
+					<img src="img/white_phone.svg">
+				</button>
+            </div>
+            <div class="col-xs-4 no-padding" >
+                <!-- Button for iOS -->
+                <button ng-if="isIOS" ng-click="navigate(current_stop)" class="waze-btn">
+                    {{arraylang['navigate'][selectedlang]}}
+                    <img src="img/navigate.svg" alt="Navigate">
+                </button>
+
+                <!-- Button for Android -->
+                <button ng-if="!isIOS" ng-click="navigate(current_stop)" class="waze-btn">
+                    WAZE
+                    <img src="img/waze.svg" alt="Waze">
+                </button>
+            </div>
+
+        </div>
+            
+        <div class="col-xs-12 no-padding" style="margin-bottom: 2%;" ng-if="current_user.display_customer_options_on_app">
+            <div class="col-xs-4 no-padding">
+                <button class="waze-btn" style="float: right;" ng-click="sendSmsBtn()">
+					{{arraylang['send_message'][selectedlang]}}
+					<img style="width: 15px;" src="img/sms.svg">
+				</button>
+            </div>
+            <div class="col-xs-4 no-padding">
+                <button ng-click="updateLocation()" class="waze-btn">
+					{{arraylang['update_location'][selectedlang]}}
+					<img src="img/map.svg">
+				</button>
+            </div>
+            <div class="col-xs-4 no-padding">
+                <button ng-click="goBack()" class="waze-btn ">
+					{{arraylang['go_back'][selectedlang]}}
+					<img style="width: 13px;" src="img/goBackWhite.svg" >
+				</button>
+            </div>
+        </div>
+
+    </div>
+
+
+
+    <!-- Modal -->
+    <div id="update-address" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <img src="img/thinking_face.svg" class="face-modal" />
+
+                </div>
+                <form id="addressForm">
+                    <div class="modal-body">
+                        <span>
+							<b>{{arraylang['customer_address'][selectedlang]}} :</b>
+						</span>
+                        <input style="border-width: 2px;" vs-google-autocomplete ng-model="address.address" vs-street-number="address.street_number" vs-street="address.street" vs-city="address.city" vs-country="address.country" vs-latitude="address.lat" vs-longitude="address.lng"
+                            type="text" placeholder="כתובת הלקוח" name="address" required />
+
+
+
+                        <span>
+							<b>{{arraylang['place_customer_address_on_map'][selectedlang]}}:</b>
+						</span>
+                        <div id="pinMap" style="height: 250px;margin-bottom: 0;margin-top: 6px;"></div>
+                        <span style="margin-top: 6%;">
+							<b>{{arraylang['customer_name'][selectedlang]}} :</b>
+						</span>
+                        <input type="text" name="customer_name" ng-model="address.customer_name" placeholder="{{arraylang['customer_name'][selectedlang]}}" />
+
+
+                        <span>
+							<b>{{arraylang['phone_for_SMS'][selectedlang]}} :</b>
+						</span>
+                        <input type="text" name="phone" ng-model="current_stop.phone" placeholder="{{arraylang['phone_for_SMS'][selectedlanguage]}}" />
+                        <span>
+							<b>{{arraylang['email_address'][selectedlang]}} :</b>
+						</span>
+                        <input type="email" name="email" ng-model="address.email_address" placeholder="{{arraylang['email_address'][selectedlanguage]}}" />
+                        <span>
+							<b>{{arraylang['stay_time'][selectedlang]}} :</b>
+						</span>
+                        <input type="text" name="stop_time" ng-model="address.stop_time" placeholder="{{arraylang['stay_time'][selectedlanguage]}}" />
+                        <span>
+							<b>{{arraylang['opening_time'][selectedlang]}} :</b>
+						</span>
+                        <input type="time" name="opening_time" datetime="hh:mm" ng-model="address.opening_time" placeholder="{{arraylang['opening_time'][selectedlanguage]}}" />
+                        <span>
+							<b>{{arraylang['closing_time'][selectedlang]}} :</b>
+						</span>
+                        <input type="time" name="closing_time" datetime="hh:mm" ng-model="address.closing_time" placeholder="{{arraylang['closing_time'][selectedlanguage]}}" />
+                        <!-- parking image -->
+                        <div style="padding: initial;height: 180px;" ng-if="current_stop.parking_area_img" class="col-xs-12">
+                            <img style="width:300px;height:180px;border: solid #DDDDDD 2px;min-width: 100px;max-width: 300px" src="{{current_stop.parking_area_img}}" />
+                            <button ng-click="deleteAddressImage(current_stop.parking_area_img)" type="button" class="btn btn-danger" style="font-size: 16px;background-color: #F45A4E;margin-top:0px;">מחיקת
+                                התמונה</button>
+                        </div>
+                        <div id="updateAddressCamera" class="col-xs-12" style="position: relative; display: none;height:auto;width:300px;padding: initial;border-top:1px solid #2D819E;margin-right: 31px">
+                        </div>
+                        <div class="col-xs-12" id="parking_area_img" ng-style="{'margin-top':current_stop.unloading_area_img ? '70px':'0'}" style="padding-top: 10px;margin-bottom: 5px;">
+                            <div class="col-xs-9">
+                                <button style="margin-top:0" ng-click="takeAddressSnapShot()" class="check-btn">
+                                    <span style="color:white">{{arraylang['parking_area_img_btn'][selectedlang]}}</span>
+                                    <i class="fa fa-camera"></i>
+                                </button>
+                            </div>
+                            <div class="col-xs-3 attach-img">
+                                <label ng-click="$event.stopPropagation();" for="addressParkingImgUpload" style="margin-top: -1px;"> <i class="fa fa-paperclip" aria-hidden="true"></i></label>
+                            </div>
+                        </div>
+                        <!-- unloading area image -->
+                        <div style="padding: initial;height:180px;" ng-if="current_stop.unloading_area_img" class="col-xs-12">
+                            <img style="width:300px;height:180px;border: solid #DDDDDD 2px;min-width: 100px;max-width: 300px" src="{{current_stop.unloading_area_img}}" />
+                            <button ng-click="deleteAddressImage(current_stop.unloading_area_img,'unloading')" type="button" class="btn btn-danger" style="font-size: 16px;background-color: #F45A4E;margin-top:0px;">מחיקת
+                                התמונה</button>
+                        </div>
+                        <div class="col-xs-12" style="position: relative; display: none;height:auto;width:300px;padding: initial;border-top:1px solid #2D819E;margin-right: 31px">
+                        </div>
+                        <div class="col-xs-12" style="padding-top: 10px;margin-bottom: 5px;">
+                            <div class="col-xs-9">
+                                <button style="margin-top:0" ng-click="takeAddressSnapShot('unloading')" class="check-btn">
+                                    <span style="color:white">{{arraylang['unloading_area_img_btn'][selectedlang]}}</span>
+                                    <i class="fa fa-camera"></i>
+                                </button>
+                            </div>
+                            <div class="col-xs-3 attach-img">
+                                <label ng-click="$event.stopPropagation();" for="addressUnloadingImgUpload" style="margin-top: -1px;"> <i class="fa fa-paperclip" aria-hidden="true"></i></label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" id="updateAddressSubmitBtn" ng-style="{'margin-top':current_stop.parking_area_img?'70px':'0'}" class="btn" style="background-color: #2D819E;" ng-click="updateAddresss()" data-dismiss="modal">
+							{{arraylang['update'][selectedlang]}}
+						</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Modal at non-delivery -->
+    <div id="no-get" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <form name="skippingForm" id="skippingForm" ng-submit="skippingForm.$invalid || beforeDone(false)">
+
+                    <div class="modal-header">
+                        <img src="img/sad_face.svg" class="face-modal" style="" />
+                    </div>
+                    <div class="modal-body">
+
+                        <p class="center" style="">
+                            {{arraylang['report_no_delivery'][selectedlang]}}
+                        </p>
+                        <textarea ng-if="current_user.app_require_remarks" required ng-model="$parent.delivered_remarks" placeholder="{{arraylang['why_dont'][selectedlang]}}" style="font-size:18px; height: 100px;margin-bottom: 0;margin-top: 6px;"></textarea>
+                        <textarea ng-if="!current_user.app_require_remarks" ng-model="$parent.delivered_remarks" placeholder="{{arraylang['why_dont'][selectedlang]}}" style="font-size:18px; height: 100px;margin-bottom: 0;margin-top: 6px;"></textarea>
+                    </div>
+                    <div class="modal-footer">
+
+                        <button type="submit" class="btn skip-btn">
+							{{arraylang['confirm'][selectedlang]}}
+							<img src="img/V_white.svg">
+						</button>
+                        <button type="button" class="btn skip-btn not-skip-btn" data-dismiss="modal">
+							{{arraylang['cancel'][selectedlang]}}
+							<img src="img/X_white.svg">
+						</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+    <!-- Modal at delivery-->
+    <div id="delivery" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <form name="deliveryForm" id="deliveryForm" ng-submit="deliveryForm.$invalid || beforeDone(true)">
+
+                    <div class="modal-header">
+                    </div>
+                    <div class="modal-body">
+
+                        <p class="center" style="">
+                            {{arraylang['report_delivery'][selectedlang]}}
+                        </p>
+                        <textarea ng-model="delivered_remarks" placeholder="{{arraylang['why_dont'][selectedlang]}}" style="font-size:18px; height: 100px;margin-bottom: 0;margin-top: 6px;"></textarea>
+                    </div>
+                    <div class="modal-footer">
+
+                        <button type="submit" class="btn skip-btn">
+							{{arraylang['confirm'][selectedlang]}}
+							<img src="img/V_white.svg">
+						</button>
+                        <button type="button" class="btn skip-btn not-skip-btn" data-dismiss="modal">
+							{{arraylang['cancel'][selectedlang]}}
+							<img src="img/X_white.svg">
+						</button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+    <!-- Modal -->
+    <div id="get" class="modal fade" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <img src="img/happy_face.svg" class="face-modal" />
+
+                </div>
+                <div class="modal-body">
+
+                    <p class="center">
+                        {{arraylang['well_done'][selectedlang]}}!
+                        </br>{{arraylang['great_work'][selectedlang]}}
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button ng-click="beforeDone(true)" type="button" class="btn" data-dismiss="modal">
+						{{arraylang['thanks'][selectedlang]}}
+					</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <!-- Modal -->
+    <!-- <div id="camera" class="modal fade" role="dialog" >
+		<div class="modal-dialog">
+	  		<h3>Modal header</h3>
+				<div class="modal-body">
+				 <h4>Just something random here</h4>
+				</div>
+				<div class="modal-footer">
+				<button type="submit" class="btn skip-btn" >
+					{{arraylang['confirm'][selectedlang]}}
+					<img src="img/V_white.svg" >
+				</button>
+				<button type="button"  class="btn skip-btn not-skip-btn"  data-dismiss="modal">
+					{{arraylang['cancel'][selectedlang]}}
+					<img src="img/X_white.svg">
+				</button>
+				</div>	
+		</div>
+	</div> -->
+    <!-- Modal -->
+    <div id="disgitalSignatureModal" class="modal fade" role="dialog">
+        <div class="modal-dialog" style="margin: 40% 0;">
+
+            <!-- Modal content-->
+            <div class="modal-content" style="padding: 0;">
+                <form name="deliveryDetailsForm">
+                    <div class="modal-header col-xs-12 no-padding" style="padding: 15px 15px 0px 15px;text-align: center">
+                        <div class="col-xs-12 no-padding">
+                            <button type="button" class="btn-close btn-close-red" style="color: white;background-color:#F45A4E;margin:20px!important;font-size:18px!important;font-weight: 400!important;width:80%!important" ng-click="confirmClosingDigitalSignatureModal()">
+                                x סגור
+                            </button>
+                        </div>
+                        <div class="col-xs-12 no-padding">
+                            <h3 class="modal-title" style="text-align: center;font-weight: 700">חתימה דיגיטלית
+                            </h3>
+                        </div>
+                        <div class="col-xs-12 no-padding">
+                            <span style="text-align: center;font-size: 18px;color: #2D819E">
+                                {{current_stop.customer_name}}</span>
+                        </div>
+
+                    </div>
+                    <div class="modal-body" style="padding: 0!important;">
+                        <div id="pdf_container" class="col-xs-12 no-padding" style="padding: 0!important;">
+                        </div>
+                        <div class="col-xs-12" style="margin-bottom: 8px;border-bottom: 1px solid #2D819E">
+                            <div class="detail-line" style="text-align: center;font-size: 18px" ng-repeat="podDisplayField in podDisplayFields">
+                                <!--<span class="bold-text" ng-bind="podDisplayField.key"></span>
+									<span>:</span>s
+									<span ng-bind="podDisplayField.value"></span>-->
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div ng-repeat="img in attachedImages" class="container col-xs-12">
+                                <div style="padding: initial">
+                                    <img style="width:300px;height:450px;border: solid #DDDDDD 2px;min-width: 100px;max-width: 300px" src="{{img}}" />
+                                    <button ng-click="deleteImage(img)" type="button" class="btn btn-danger" style="width: 130px;font-size: 16px;background-color: #F45A4E;	position: absolute; right: 7.95em;top: -1em;display: inline-block;">מחיקת
+										התמונה</button>
+
+                                </div>
+
+                                <!-- <i ng-click="deleteImage(img)" class="fa fa-close del_but" style="font-size:30px;"></i>-->
+
+
+                                <!-- <i ng-click="deleteImage(img)" class="fas fa-trash x_but"></i> -->
+                            </div>
+                        </div>
+                        <div id="camera" class="col-xs-12" style="position: relative; display: none;height:auto;width:300px;padding: initial;border-top:1px solid #2D819E;margin-right: 31px">
+                        </div>
+                        <div class="col-xs-12" style="padding-top: 10px">
+                            <div class="col-xs-6">
+                                <text style="font-size: 20px;padding:initial;color: #5d5e62;">
+									הוספת תמונות
+								</text>
+                            </div>
+                            <div class="col-xs-3">
+                                <button style="width: fit-content;margin-top:0" class="btn col-xs-2" ng-click="takeSnapShot()" class="circle-urgency check-btn">
+									<i class="fa fa-camera"></i>
+								</button>
+                            </div>
+                            <div class="col-xs-3 attach-img">
+                                <label ng-click="$event.stopPropagation();" for="imgUpload" style="margin-top: -1px;"> <i class="fa fa-paperclip" aria-hidden="true"></i></label>
+                            </div>
+                        </div>
+                        <label id="requier_photo_label" ng-show="requier_photo&&attachedImages.length==0" style="color:#e9322d;">{{arraylang['photo_required'][selectedlang]}}</label>
+                        <div class="col-xs-12" ng-if="current_user.item_management" style="margin-bottom: 0;margin-top: 6px;">
+                            <div class="col-xs-12" style="border: 1px solid rgb(70, 182, 135);">
+                                <span style="text-align: center;font-size: 15px">
+									{{arraylang['items_management'][selectedlang]}}
+								</span>
+                            </div>
+                            <div class="col-xs-12" style="border: 1px solid rgb(70, 182, 135);">
+                                <table class="table" ng-if="current_stop.order_items.length">
+                                    <tr>
+                                        <td class="item-table-head">{{arraylang['item_name'][selectedlang]}}</td>
+                                        <td class="item-table-head">{{arraylang['amount'][selectedlang]}}</td>
+                                    </tr>
+                                    <tr ng-repeat="item in current_stop.order_items| orderBy:'name'  track by $index">
+                                        <td class="col-xs-8" ng-bind="item.name"></td>
+                                        <td class="col-xs-4">
+                                            <span ng-if="!item.isEditingItem" class="edit-item"><i class="col-xs-4 no-padding far fa-edit" ng-click="editItem(item)"></i></span>
+                                            <span ng-if="item.isEditingItem" class="edit-item"><i
+													class="col-xs-4 no-padding fa fa-check-circle"
+													aria-hidden="true"></i></span>
+                                            <span class="col-xs-8 no-padding" ng-if="!item.isEditingItem" ng-bind="item.provided_amount"></span>
+                                            <span ng-if="item.isEditingItem"><input class="col-xs-8 no-padding"
+													type="text" id="item-amount-{{$index}}"
+													ng-model="item.provided_amount"
+                                                    ng-blur="editItem(item,$index)"
+													style="height: 20px !important;" /></span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                        </div>
+                        <div class="col-xs-12" style="border-top:1px solid #2D819E; margin-top: 20px;">
+                            <div style="font-size: 20px;margin:20px;height: 20px;color: #5d5e62;font-weight: bold;">
+                                פרטים נוספים
+                            </div>
+                            <textarea class="col-x-12" ng-model="delivered_remarks" placeholder="{{arraylang['remarks'][selectedlang]}}?" style="font-size:18px; height: 50px;margin-bottom: 0;margin-top: 6px;border: 1px solid rgb(70, 182, 135);"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <div class="col-xs-12" style="text-align: right;">
+                                <textarea class="col-x-12" ng-model="returns" ng-keydown="checkValidReturns()" placeholder="פירוט החזרות מלקוחות.." style="font-size:18px; height: 50px;margin-bottom: 0;margin-top: 6px;border: 1px solid rgb(70, 182, 135);" ng-maxlength="120"></textarea>
+                                <span ng-if="!validReturnsLength" style="color: red;">
+                                    {{arraylang['maxlength_returns'][selectedlang]}}
+                                </span>
+                            </div>
+                            
+                            <div class="col-xs-12" style="margin-bottom: 20px">
+                                <textarea name="require_sign_name" ng-if="require_sign_name" class="col-x-12 reciever-name-txt-area" ng-model="$parent.receiverName" required placeholder="שם המקבל" style="font-size:18px; height: 50px;margin-bottom: 0;margin-top: 6px;border: 1px solid rgb(70, 182, 135);"></textarea>
+                                <textarea name="require_sign_name" ng-if="!require_sign_name" class="col-x-12 reciever-name-txt-area" ng-model="$parent.receiverName" placeholder="שם המקבל" style="font-size:18px; height: 50px;margin-bottom: 0;margin-top: 6px;border: 1px solid rgb(70, 182, 135);"></textarea>
+                                <div ng-if="require_sign_name&&!receiverName" >
+                                    <div style="color:red;text-align: right;font-size:14px;" ng-message="required" class="help-block">נא הזן שם</div>
+                                </div>
+                               <textarea  class="col-x-12" ng-model="$parent.receiverPhoneNumber" placeholder="טלפון לקבלת עותק תעודה חתומה במסרון" style="font-size:18px; height: 50px;margin-bottom: 0;margin-top: 6px;border: 1px solid rgb(70, 182, 135);"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="col-xs-12" style="border-top: 1px solid #2D819E; padding-top: 20px;">
+                                <label style="font-size: 20px;font-weight: bold">חתימת המקבל</label>
+                                <div class="col-xs-12 no-padding" style="margin-top: 20px;border: 1px solid #46b687;" ng-style="{'max-width': boundingBox.width + 'px', 'max-height': boundingBox.height + 'px'}">
+                                    <!-- <signature-pad id="signature" accept="accept" clear="clear" height="220" width="568" dataurl="dataurl"></signature-pad> -->
+                                    <signature-pad id="signature" accept="accept" clear="clear" height="100" width="326" dataurl="dataurl"></signature-pad>
+                                </div>
+                                <label id="requier_sign_label" ng-show="hasSigned()" style="color:#e9322d;">{{arraylang['signature_required'][selectedlang]}}</label>
+
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="padding: 0!important;margin-top: 20px">
+                        <div class="col-xs-6">
+                            <button class="btn" ng-click="confirmcleaningSignature()" style="background-color: #f45a4e;">נקה חתימה</button>
+                            <button id="clearBtn" style="display: none;" ng-click="clear()"></button>
+                        </div>
+                        <div class="col-xs-6">
+                            <button class="btn" ng-click="confirmSendingSignature()" ng-disabled="deliveryDetailsForm.$invalid">שלח חתימה</button>
+                        </div>
+                        <!-- <div class="col-xs-12" style="text-align: right;padding: 20px;">
+								<p>* ליציאה מחלונית חתימה דיגיטלית, נא ללחוץ מחוץ לאזור החלונית</p>				
+								</div> -->
+                    </div>
+                    <div style="padding: 0px 15px 15px 15px;text-align: center">
+                        <button type="button" class="btn-close btn-close-red" style="color: white;background-color:#F45A4E;margin:30px 20px 20px 20px !important;font-size:18px!important;font-weight: 400!important;width:80%!important" ng-click="confirmClosingDigitalSignatureModal()">
+							יציאה מחתימה דיגיטלית
+						</button>
+
+                    </div>
+                </form>
+            </div>
+
+
+        </div>
+    </div>
+    <!-- Modal of only displaying the pdf pod file -->
+    <div id="podFilePreviewModal" class="modal fade" role="dialog">
+        <div class="modal-dialog" style="margin: 40% 0;">
+
+            <!-- Modal content-->
+            <div class="modal-content" style="height: 800px;padding: 0;">
+                <!-- <form name="pdfPodFileForm"> -->
+
+                    <!-- Modal content-->                        
+                    <div class="modal-header col-xs-12 no-padding" style="padding: 15px 15px 0px 15px;text-align: center">
+                        <div class="col-xs-12 no-padding">
+                            <button type="button" class="btn-close btn-close-red" style="color: white;background-color:#F45A4E;margin:20px!important;font-size:18px!important;font-weight: 400!important;width:80%!important" ng-click="closepodFilePreviewModal()">
+                                x סגור
+                            </button>
+                        </div>
+                        <div class="col-xs-12 no-padding">
+                            <h3 class="modal-title" style="text-align: center;font-weight: 700">חתימה דיגיטלית
+                            </h3>
+                        </div>
+                        <div class="col-xs-12 no-padding">
+                            <span style="text-align: center;font-size: 18px;color: #2D819E">
+                                {{current_stop.customer_name}}</span>
+                        </div>
+
+                    </div>
+                    <div class="modal-body" style="padding: 0!important;">
+                        <div id="pdf_preview_container" class="col-xs-12 no-padding" style="padding: 0!important;">
+                        </div>
+                    </div>
+                <!-- </form> -->
+            </div>
+        </div>
+    </div>
+    <!-- Modal-pallet-collection -->
+    <div id="collectingPalletsModal" class="modal fade" role="dialog" data-keyboard="false" data-backdrop="static">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="col-xs-12">
+                        <h3 class="modal-title" style="text-align: center">
+                            <span>{{arraylang['report_pallet_collection'][selectedlang]}}</span></h3>
+                    </div>
+                    <div class="col-xs-12">
+                        <span class="col-xs-2" ng-class="{'col-xs-offset-5' : !current_user.two_kinds_of_pallets_regular_or_plastons,'col-xs-offset-4' : current_user.two_kinds_of_pallets_regular_or_plastons}">
+                            <i ng-class="{'text-confirm': regular_pallets||current_user.two_kinds_of_pallets ,'text-secondary': !regular_pallets}" class="fas fa-box" style="font-size: 25px"
+								ng-click="setCurrentPallets();">
+                            </i>
+                        </span>
+                        <span ng-if="current_user.two_kinds_of_pallets_regular_or_plastons" class="col-xs-2">
+                            <i ng-class="{'text-confirm': plaston_pallets ,'text-secondary': !plaston_pallets}" 
+                                class="fas fa-pallet" style="font-size: 25px" 
+                                ng-click="setCurrentPallets(true);">
+                            </i>
+                        </span>
+                    </div>
+                </div>
+                <form name="palletsForm" id="palletsForm">
+                    <div class="modal-body">
+                        <div class="col-xs-12">
+                            <!-- it is not big and small the big ones are the new pallets that are given now to customer and the small ones are the collected -->
+                            <span ng-if="!plaston_pallets && !regular_pallets && (!current_user.two_kinds_of_pallets || current_user.two_kinds_of_pallets_regular_or_plastons)">
+                                {{arraylang['choose_pallet'][selectedlang]}}
+                            </span>
+                            <span ng-if="plaston_pallets==1||regular_pallets==1 || (current_user.two_kinds_of_pallets && !current_user.two_kinds_of_pallets_regular_or_plastons)">
+                                <span ng-if="regular_pallets==1||!plaston_pallets">{{arraylang['total_pallets'][selectedlang]}}</span>
+                            
+                                <span ng-if="regular_pallets==1&&!current_user.two_kinds_of_pallets_regular_or_plastons">{{arraylang['plastic'][selectedlang]}}</span>
+                                <span ng-if="plaston_pallets==1">{{arraylang['total_plastons'][selectedlang]}}</span>
+                                :
+                            </span>
+                        </span>
+                        </div>
+                        <!-- change condition of displaying by the two_kinds_of_pallets def if on display always -->
+                       <!-- איסוף משטחים -->
+                        <!-- כברירת מחדל יש רק איסוף ולפי ההגדרה חלוקה לשני סוגים איסוף/מסירה יש גם מסירה למטה -->
+                        <div class="col-xs-12" ng-class="{'small-pallets':current_user.two_kinds_of_pallets}">
+                            <div class="col-xs-4 no-padding" ng-if="current_user.two_kinds_of_pallets">
+                                <span ng-class="{'pallets-explantation-span':current_user.two_kinds_of_pallets}"><i class="fa fa-sign-out" aria-hidden="true"></i>  {{arraylang['collected'][selectedlang]}}</span> 
+                            </div>
+                            <div ng-if="regular_pallets==1||current_user.two_kinds_of_pallets">
+                                <div ng-class="{'col-xs-3 col-xs-offset-1':!current_user.two_kinds_of_pallets,'col-xs-2 no-padding':current_user.two_kinds_of_pallets}">
+                                    <button class="btn add-pallets-btn" ng-click="current_stop.small_pallets= current_stop.small_pallets!=undefined ? current_stop.small_pallets+1 : 0">
+                                        <span><i class="fa fa-plus" aria-hidden="true"></i></span>
+                                    </button>
+                                </div>
+                                <div class="col-xs-3" ng-class="{'palets-num-span':current_user.two_kinds_of_pallets}" style="text-align: center">
+                                    <!-- <span ng-if="current_stop.small_pallets!=undefined">{{current_stop.small_pallets}}</span> -->
+                                    <input type="number" ng-model="current_stop.small_pallets" class="number-input" focus-select style="width: 100px; border: none; background: none;" />
+                                </div>
+                                <div ng-class="{'col-xs-3':!current_user.two_kinds_of_pallets,'col-xs-2 no-padding':current_user.two_kinds_of_pallets}">
+                                    <button class="btn add-pallets-btn" ng-click="current_stop.small_pallets= current_stop.small_pallets ? current_stop.small_pallets-1 : 0">
+                                        <span><i class="fa fa-minus" aria-hidden="true"></i></span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div ng-if="plaston_pallets==1">
+                                <div ng-class="{'col-xs-3 col-xs-offset-1':!current_user.two_kinds_of_pallets,'col-xs-2 no-padding':current_user.two_kinds_of_pallets}">
+                                    <button class="btn add-pallets-btn" ng-click="current_stop.collected_plastons= current_stop.collected_plastons!=undefined ? current_stop.collected_plastons+1 : 0">
+                                        <span><i class="fa fa-plus" aria-hidden="true"></i></span>
+                                    </button>
+                                </div>
+                                <div class="col-xs-3" ng-class="{'palets-num-span':current_user.two_kinds_of_pallets}" style="text-align: center">
+                                    <!-- <span ng-if="current_stop.collected_plastons!=undefined">{{current_stop.collected_plastons}}</span> -->
+                                    <input type="number" ng-model="current_stop.collected_plastons" class="number-input" focus-select style="width: 100px; border: none; background: none;" />
+                                </div>
+                                <div ng-class="{'col-xs-3':!current_user.two_kinds_of_pallets,'col-xs-2 no-padding':current_user.two_kinds_of_pallets}">
+                                    <button class="btn add-pallets-btn" ng-click="current_stop.collected_plastons= current_stop.collected_plastons ? current_stop.collected_plastons-1 : 0">
+                                        <span><i class="fa fa-minus" aria-hidden="true"></i></span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                        </div>
+                        <!-- מסירת משטחים -->
+                        <div class="col-xs-12 big-pallets" ng-if="current_user.two_kinds_of_pallets">
+                            <div class="col-xs-4 no-padding" ng-if="current_user.two_kinds_of_pallets">
+                                <span class="pallets-explantation-span"><i class="fa fa-sign-in" aria-hidden="true"></i>  {{arraylang['given'][selectedlang]}}</span> 
+                            </div>
+                            <div ng-if="regular_pallets==1||current_user.two_kinds_of_pallets">
+                                <div class="col-xs-2 no-padding" ng-class="{'col-xs-offset-1':!current_user.two_kinds_of_pallets}">
+                                    <button class="btn add-pallets-btn" ng-click="current_stop.big_pallets= current_stop.big_pallets!=undefined ? current_stop.big_pallets+1 : 0">
+                                        <span><i class="fa fa-plus" aria-hidden="true"></i></span>
+                                    </button>
+                                </div>
+                                <div class="col-xs-3 palets-num-span" style="text-align: center">
+                                    <!-- <span ng-if="current_stop.big_pallets!=undefined">{{current_stop.big_pallets}}</span> -->
+                                    <input type="number" ng-model="current_stop.big_pallets" class="number-input" focus-select style="width: 100px; border: none; background: none;" />
+                                </div>
+                                <div class="col-xs-2 no-padding">
+                                    <button class="btn add-pallets-btn" ng-click="current_stop.big_pallets= current_stop.big_pallets ? current_stop.big_pallets-1 : 0">
+                                        <span><i class="fa fa-minus" aria-hidden="true"></i></span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div ng-if="plaston_pallets==1">
+                                <div class="col-xs-2 no-padding" ng-class="{'col-xs-offset-1':!current_user.two_kinds_of_pallets}">
+                                    <button class="btn add-pallets-btn" ng-click="current_stop.delivered_plastons= current_stop.delivered_plastons!=undefined ? current_stop.delivered_plastons+1 : 0">
+                                        <span><i class="fa fa-plus" aria-hidden="true"></i></span>
+                                    </button>
+                                </div>
+                                <div class="col-xs-3 palets-num-span" style="text-align: center">
+                                    <!-- <span ng-if="current_stop.delivered_plastons!=undefined">{{current_stop.delivered_plastons}}</span> -->
+                                    <input type="number" ng-model="current_stop.delivered_plastons" class="number-input" focus-select style="width: 100px; border: none; background: none;" />
+                                </div>
+                                <div class="col-xs-2 no-padding">
+                                    <button class="btn add-pallets-btn" ng-click="current_stop.delivered_plastons= current_stop.delivered_plastons ? current_stop.delivered_plastons-1 : 0">
+                                        <span><i class="fa fa-minus" aria-hidden="true"></i></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <div class="col-xs-12">
+                            <button class="col-xs-4 col-xs-offset-4 btn skip-btn report-pallets-btn" ng-click="reportCollectingPallets()">
+								{{arraylang['confirm'][selectedlang]}}
+							</button>
+                        </div>
+                        <div class="col-xs-12">
+                            <span ng-if="invalid_reporting==1" class="modal-err-msg">{{arraylang['report_not_valid'][selectedlang]}}</span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+    <!-- Modal message that force deliverying/undeliverying reporting(arrival_reporting_app settting)  -->
+    <div id="arrivalReportingAppModal" class="modal fade" role="dialog" data-keyboard="false" data-backdrop="static">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-body">
+
+                    <span>{{arraylang['force_delivery_msg'][selectedlang]}}</span>
+
+                </div>
+                <div class="modal-footer">
+                    <div class="col-xs-12">
+                        <button class="col-xs-3 col-xs-offset-9 btn no-padding" style="margin-top:5px" data-dismiss="modal">
+							{{arraylang['confirm'][selectedlang]}}
+						</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- completingMissionModal  -->
+    <div id="completingMissionModal" class="modal fade" role="dialog" data-keyboard="false" data-backdrop="static">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <img src="img/mission.svg" class="face-modal" style="" />
+                </div>
+                <div class="modal-body">
+
+                    <h4 class="mission-header">{{arraylang['mission_header'][selectedlang]}} : </h4>
+                    <span>{{current_stop.address_note}}  </span>
+                </div>
+                <div class="modal-footer confirm-mission">
+                    <div class="col-xs-6">
+                        <div class="col-xs-12 no-padding">
+                            <button class="btn" ng-click="reportCompletingMission(true)">{{arraylang['confirm_and_continue'][selectedlang]}}</button>
+                        </div>
+                        <div class="col-xs-12 no-padding">
+                            <span ng-if="current_stop.requires_confirmation" class="modal-err-msg">{{arraylang['requires_confirmation'][selectedlang]}}</span>
+                        </div>
+                    </div>
+                    <div class="col-xs-6">
+                        <button class="btn" ng-disabled="current_stop.requires_confirmation" ng-click="reportCompletingMission(false)">{{arraylang['continue_without_confirmation'][selectedlang]}}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal message that there are more orders this station-this customer  -->
+    <div id="sameCustomerMessageModal" class="modal fade" role="dialog" data-keyboard="false" data-backdrop="static">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-body">
+
+                    <span>{{arraylang['same_customer_else_orders1'][selectedlang]}}  </span>
+                    <span>{{arraylang['same_customer_else_orders2'][selectedlang]}}  </span>
+                </div>
+                <div class="modal-footer">
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal message that there are more orders this station-this customer  -->
+    <div id="errorModal" class="modal fade" role="dialog" data-keyboard="false" data-backdrop="static">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-body">
+                    <span ng-bind="errorMessage"></span>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" style="margin-top:5px" ng-click="clearCacheSigningError()" data-dismiss="modal">
+                        {{arraylang['try_again2'][selectedlang]}}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal message that there is an address-note  -->
+    <div id="remarksModal" class="modal fade" role="dialog" data-keyboard="false" data-backdrop="static">
+        <div class="modal-dialog">
+            
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 style="text-align: center;font-weight: 700;">{{arraylang['address_notes'][selectedlang]}}</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="col-xs-12" ng-if="current_stop.customer.address_note">
+                        <i class="fa fa-comment-o" aria-hidden="true"></i>
+                        <span>{{arraylang['customer_note'][selectedlang]}}</span> : 
+                        <span ng-bind="current_stop.customer.address_note" style="margin-left: 4px;"></span>
+                    </div>
+                    <div class="col-xs-12" ng-if="current_stop.address_note" style="margin-bottom: 18px;">
+                        <i class="fa fa-sticky-note-o" aria-hidden="true"></i>
+                        <span>{{arraylang['mission'][selectedlang]}}</span> : 
+                        <span ng-bind="current_stop.address_note" style="margin-left: 4px;"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="col-xs-4 col-xs-offset-4">
+                        <button class="btn" style="margin-top:5px" data-dismiss="modal">
+                            {{arraylang['confirm'][selectedlang]}}
+                        </button>      
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal confirm dynamic message /warning -->
+    <div id="dynamicMessageModal" class="modal fade" role="dialog" data-keyboard="false" data-backdrop="static">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-body">
+                    <span ng-bind="dynamicMessage"></span>
+                </div>
+                <div class="modal-footer">
+                    <div class="col-xs-12">
+                        <div class="col-xs-4">
+                            <button class="btn" style="margin-top:5px" ng-if="dynamicFunction" ng-click="dynamicFunction()">
+                                {{arraylang['confirm'][selectedlang]}}
+                            </button>
+                        </div>
+                        <div class="col-xs-4 col-xs-offset-4">
+                            <button class="btn" style="margin-top:5px" ng-click="closeDynamicModal()">
+                                {{arraylang['cancel'][selectedlang]}}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xs-12 col-sm-12 " style="    padding-top: 0px;   ">
+        <input style="display: none;" id="imgUpload" type="file" accept=".jpg,.jpeg" onchange="angular.element(this).scope().uploadImage(event)">
+	</div>
+    <div class="col-xs-12 col-sm-12 " style="    padding-top: 0px;   ">
+        <input style="display: none;" id="addressParkingImgUpload" type="file" accept=".jpg,.jpeg" onchange="angular.element(this).scope().uploadAddressImage(event)">
+	</div>
+    <div class="col-xs-12 col-sm-12 " style="    padding-top: 0px;   ">
+        <input style="display: none;" id="addressUnloadingImgUpload" type="file" accept=".jpg,.jpeg" onchange="angular.element(this).scope().uploadAddressImage(event)">
+	</div>
+    <style>
+        #mymap {
+            position: fixed !important;
+        }
+    </style>
+</div>
