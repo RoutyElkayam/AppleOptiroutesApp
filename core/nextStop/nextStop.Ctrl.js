@@ -1,0 +1,1834 @@
+angular.module("RouteSpeed.nextStop").controller("nextStopCtrl", [
+  "$scope",
+  "$rootScope",
+  "$http",
+  "$window",
+  "$location",
+  "$filter",
+  "$routeParams",
+  "$sce",
+  "StopService",
+  "connectPOSTService",
+  "PodDraftStore",
+  "AppActivityService",
+
+  function nextStopCtr(
+    $scope,
+    $rootScope,
+    $http,
+    $window,
+    $location,
+    $filter,
+    $routeParams,
+    $sce,
+    StopService,
+    connectPOSTService,
+    PodDraftStore,
+    AppActivityService
+  ) {
+    // el 27.12.21
+    $scope.requier_sign =
+      localStorage.getItem("requier_sign") == 1 ? true : false;
+    $scope.requier_photo =
+      localStorage.getItem("requier_photo") == 1 ? true : false;
+    $scope.require_sign_name =
+      localStorage.getItem("require_sign_name") == 1 ? true : false;
+    $scope.requier_surface =
+      localStorage.getItem("requier_surface") == 1 ? true : false;
+    //$scope.invalid_reporting=$scope.requier_surface==false?0:1;
+
+    // efrat 14.11.22 close dialog model on back to the previous page event
+    $(window).on("popstate", function () {
+      //console.log("back");
+      angular.element("#disgitalSignatureModal").modal("hide");
+      $(".modal-backdrop").remove();
+    });
+
+    // if (
+    //   "mediaDevices" in navigator &&
+    //   "getUserMedia" in navigator.mediaDevices
+    // ) {
+    //   console.log("Let's get this party started");
+    // }
+
+    // efrat 15.09.22 : enabel zoom in on stop page (In order to be able to read the pdf )
+    $viewport = $('head meta[name="viewport"]');
+    $viewport.attr(
+      "content",
+      "width=device-width, initial-scale=1.0,minimum-scale=0.1,maximum-scale=10,user-scalable=1, minimal-ui"
+    );
+
+    $scope.boundingBox = {
+      width: 700,
+      height: 300,
+    };
+
+    $scope.has_reported_pallets = false;
+    $scope.has_signed_pod = false;
+    $scope.attachedImages = [];
+    $scope.returns = "";
+    $scope.validReturnsLength=true;
+    $scope.double_documentaion = false;
+    $scope.documentation = {};
+    $scope.identify = localStorage.getItem("identify_number");
+    $scope.current_expense;
+    $scope.delivered_remarks = "";
+    $scope.isDone;
+
+    var currentPosition = null;
+
+
+    function loadPdf(url,isPreview=false) {
+      // If absolute URL from the remote server is provided, configure the CORS
+      // header on that server.
+      //var url = '../optwaysSrv/web/template.pdf';
+      var pdfContainerId = isPreview ? "pdf_preview_container" : "pdf_container";
+      // Loaded via <script> tag, create shortcut to access PDF.js exports.
+      var pdfjsLib = window["pdfjs-dist/build/pdf"];
+
+      // The workerSrc property shall be specified.
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+      // Asynchronous download of PDF
+      var loadingTask = pdfjsLib.getDocument(url);
+      loadingTask.promise.then(
+        function (pdf) {
+          console.log("PDF loaded");
+          var div = document.getElementById(pdfContainerId);
+          //remove last order pod file if exists(customer_sub_orders issue RUT 13/08/23)
+          while (div.firstChild) {
+              div.removeChild(div.firstChild);
+          }
+          //RUTEL display all the PDF file pages:
+          for (var num = 1; num <= pdf.numPages; num++) {
+            // Fetch the first page
+            var pageNumber = num;
+            pdf.getPage(pageNumber).then(function (page) {
+              console.log("Page loaded");
+
+              // var viewport = page.getViewport({scale:1});
+              //var scale = document.getElementById(pdfContainerId).clientWidth / (viewport.width * (96/72));
+              var scale = 1.5;
+              viewport = page.getViewport({ scale: scale });
+              // Prepare canvas using PDF page dimensions
+              var canvas = document.createElement("canvas");
+              canvas.classList.add("col-xs-12");
+              canvas.classList.add("no-padding");
+              var div = document.getElementById(pdfContainerId);
+              
+              div.appendChild(canvas);
+              //var canvas = document.getElementById('the-canvas');
+              var context = canvas.getContext("2d");
+              canvas.height = viewport.height;
+              canvas.width = viewport.width;
+
+              // Render PDF page into canvas context
+              var renderContext = {
+                canvasContext: context,
+                viewport: viewport,
+              };
+              var renderTask = page.render(renderContext);
+              renderTask.promise.then(function () {
+                console.log("Page rendered");
+              });
+            });
+          }
+        },
+        function (reason) {
+          // PDF loading error
+          console.error(reason);
+          alert(reason.message);
+        }
+      );
+    }
+
+    // SHOW THE SNAPSHOT.
+    $scope.takeAddressSnapShot = function (type='parking') {
+      if (window.cordova) {
+        // Cordova environment: Use cordova-plugin-camera
+        navigator.camera.getPicture(
+          function (imageData) {
+            $scope.$apply(function () {
+              var data_uri = "data:image/jpeg;base64," + imageData;
+              if(type == 'parking'){
+                $scope.current_stop.parking_area_img = data_uri;
+                angular.element('#updateAddressSubmitBtn')[0].style.marginTop = '70px';
+              }else{
+                $scope.current_stop.unloading_area_img = data_uri;
+                angular.element('#parking_area_img')[0].style.marginTop = '70px';
+              }
+            });
+            alert("התמונה צולמה");
+          },
+          function (message) {
+            alert("Failed because: " + message);
+          },
+          {
+            quality: 60,
+            destinationType: Camera.DestinationType.DATA_URL,
+            saveToPhotoAlbum: false,
+            correctOrientation: true,
+            cameraDirection: Camera.Direction.BACK
+          }
+        );
+      } else {
+        // Browser environment: Use Webcam
+        if ($("#updateAddressCamera")[0].style.display == "none"){
+          $("#updateAddressCamera")[0].style.display = "block";
+          Webcam.attach("#updateAddressCamera");
+        }
+        else {
+          if (!Webcam.loaded) {
+              alert($rootScope.arraylang['camera_not_ready'][$rootScope.selectedlang]);
+              return;
+          }
+
+          Webcam.snap(function (data_uri) {
+            if(type == 'parking'){
+              $scope.current_stop.parking_area_img = data_uri;
+              angular.element('#updateAddressSubmitBtn')[0].style.marginTop = '70px';
+            }else{
+              $scope.current_stop.unloading_area_img = data_uri;
+              angular.element('#parking_area_img')[0].style.marginTop = '70px';
+            }
+              
+            alert("התמונה צולמה");
+            $("#updateAddressCamera")[0].style.display = "none";
+          });
+        }
+      }
+    };
+    // Cordova success and error callbacks
+    function onSuccess(imageData) {
+      $scope.$apply(function () {
+          if ($scope.attachedImages.length >= 3) {
+            alert($rootScope.arraylang['max_images_reached'] ? $rootScope.arraylang['max_images_reached'][$rootScope.selectedlang] : 'Maximum 3 images allowed per order');
+            return;
+          }
+          $scope.attachedImages.push("data:image/jpeg;base64," + imageData);
+          //Save draft
+          try {
+            PodDraftStore.save($scope.current_stop.id, {
+              images: $scope.attachedImages,
+              remarks: $scope.delivered_remarks,
+              returns: $scope.returns
+            });
+          } catch (e) {
+            console.error("Error saving draft in onSuccess:", e);
+          }
+      });
+      alert($rootScope.arraylang['photo_captured'][$rootScope.selectedlang]);
+    }
+
+    function onFail(message) {
+      alert("Failed because: " + message);
+    }
+    // Function to actually take the picture (called after confirmation)
+    $scope.confirmTakePicture = function () {
+      angular.element('#dynamicMessageModal').modal('hide');
+      if (window.cordova) {
+        // Cordova environment: Use cordova-plugin-camera
+        navigator.camera.getPicture(onSuccess, onFail, {
+            quality: 60,
+            destinationType: Camera.DestinationType.DATA_URL, // For base64 string
+            saveToPhotoAlbum: false,
+            correctOrientation: true,
+            cameraDirection: Camera.Direction.BACK
+        });
+      } else {
+        // Browser environment: Use Webcam
+        if ($("#camera")[0].style.display == "none"){
+          $("#camera")[0].style.display = "block";
+          $scope.cameraReady = false;
+          Webcam.attach('#camera');    // start the stream now
+          // wait for 'live' event
+        }else{
+
+            if (!$scope.cameraReady || !Webcam.loaded) {
+              alert($rootScope.arraylang['camera_not_ready'][$rootScope.selectedlang]);
+              return;
+            }
+            
+            //Webcam.set({
+            //   video: { facingMode: "environment" },
+            // });
+      
+            Webcam.snap(function (data_uri) {
+              // document.getElementById('snapShot').innerHTML =
+              // '<img src="' + data_uri + '" width="70px" height="52.5px" />';
+              if ($scope.attachedImages.length >= 3) {
+                alert($rootScope.arraylang['max_images_reached'] ? $rootScope.arraylang['max_images_reached'][$rootScope.selectedlang] : 'Maximum 3 images allowed per order');
+                $("#camera")[0].style.display = "none";
+                return;
+              }
+              $scope.attachedImages.push(data_uri);
+              //Save draft
+              try {
+                PodDraftStore.save($scope.current_stop.id, {
+                  images: $scope.attachedImages,
+                  remarks: $scope.delivered_remarks,
+                  returns: $scope.returns
+                });
+              } catch (e) {
+                console.error("Error saving draft in Webcam.snap:", e);
+              }
+              alert($rootScope.arraylang['photo_captured'][$rootScope.selectedlang]);
+      
+              $("#camera")[0].style.display = "none";
+              //$('#camera').html('');
+            });
+        }
+      }
+    };
+
+    //Take snapshot - shows confirmation modal first
+    $scope.takeSnapShot = function () {
+      // Check if already at max images
+      if ($scope.attachedImages.length >= 3) {
+        alert($rootScope.arraylang['max_images_reached'] ? $rootScope.arraylang['max_images_reached'][$rootScope.selectedlang] : 'Maximum 3 images allowed per order');
+        return;
+      }
+      
+      // Show confirmation modal
+      $scope.dynamicMessage = $rootScope.arraylang['confirm_take_picture'][$rootScope.selectedlang];
+      $scope.dynamicFunction = $scope.confirmTakePicture;
+      angular.element('#dynamicMessageModal').modal('show');
+    };
+    //Upload image from devicve
+    $scope.uploadAddressImage = function(e){
+      if (e.target.files && e.target.files[0]) {
+        var reader = new FileReader();
+
+        if(e.target.id == 'addressParkingImgUpload')
+          reader.onload = $scope.addressParkingImageIsLoaded;
+        else
+          reader.onload = $scope.addressUnloadingImageIsLoaded;
+        reader.readAsDataURL(e.target.files[0]);;
+      }
+    }
+    $scope.uploadImage = function(e){
+      if (e.target.files && e.target.files[0]) {
+        var reader = new FileReader();
+
+        reader.onload = $scope.imageIsLoaded;
+        reader.readAsDataURL(e.target.files[0]);;
+      }
+    }
+    $scope.addressParkingImageIsLoaded = function(e){
+      $scope.$apply(function() {
+          $scope.current_stop.parking_area_img = e.target.result;
+          angular.element('#updateAddressSubmitBtn')[0].style.marginTop = '70px';
+      });
+    }
+    $scope.addressUnloadingImageIsLoaded = function(e){
+      $scope.$apply(function() {
+          $scope.current_stop.unloading_area_img = e.target.result;
+          angular.element('#parking_area_img')[0].style.marginTop = '70px';
+      });
+    }
+    $scope.imageIsLoaded = function(e){
+      $scope.$apply(function() {
+          if ($scope.attachedImages.length >= 3) {
+            alert($rootScope.arraylang['max_images_reached'] ? $rootScope.arraylang['max_images_reached'][$rootScope.selectedlang] : 'Maximum 3 images allowed per order');
+            return;
+          }
+          $scope.attachedImages.push(e.target.result);
+          //Save draft
+          try {
+            PodDraftStore.save($scope.current_stop.id, {
+              images: $scope.attachedImages,
+              remarks: $scope.delivered_remarks,
+              returns: $scope.returns
+            });
+          } catch (e) {
+            console.error("Error saving draft in imageIsLoaded:", e);
+          }
+      });
+    }
+
+    $scope.resetSnapShot = function () {
+      Webcam.reset();
+    };
+
+    function stopVideoOnly(stream) {
+      stream.getTracks().forEach(function (track) {
+        if (track.readyState == "live" && track.kind === "video") {
+          track.stop();
+        }
+      });
+    }
+    $scope.deleteAddressImage = function(url,type='parking'){
+      if(type == 'parking')
+        $scope.current_stop.parking_area_img = undefined;
+      else
+      $scope.current_stop.unloading_area_img = undefined;
+    }
+    $scope.deleteImage = function (url) {
+      //var index = $scope.array.indexOf(url);
+      $scope.attachedImages.splice(url, 1);
+      // Update draft in localStorage
+      try {
+        PodDraftStore.save($scope.current_stop.id, {
+          images: $scope.attachedImages,
+          remarks: $scope.delivered_remarks,
+          returns: $scope.returns
+        });
+      } catch (e) {
+        console.error("Error updating draft after deleting image:", e);
+      }
+      //alert($scope.attachedImages);
+    };
+
+    function dataURItoBlob(dataURI) {
+      // convert base64/URLEncoded data component to raw binary data held in a string
+
+      var byteString;
+
+      if (dataURI.split(",")[0].indexOf("base64") >= 0)
+        byteString = atob(dataURI.split(",")[1]);
+      else byteString = unescape(dataURI.split(",")[1]);
+
+      // separate out the mime component
+
+      var mimeString = dataURI.split(",")[0].split(":")[1].split(";")[0];
+
+      // write the bytes of the string to a typed array
+
+      var ia = new Uint8Array(byteString.length);
+
+      for (var i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+
+      return new Blob([ia], { type: mimeString });
+    }
+
+    
+    //$scope.signatureff=accept()
+    $scope.signForm = function (status = $scope.delivery_status) {
+      var signature = $scope.accept();
+      if ($scope.requier_photo && $scope.attachedImages.length == 0) {
+        document.getElementById("requier_photo_label").style.display = "block";
+        $scope.delivery_status = status;
+      } else if (
+        $scope.requier_sign &&
+        (signature.dataUrl == undefined || signature.isEmpty == true)
+      ) {
+        document.getElementById("requier_sign_label").style.display = "block";
+      } else {
+        document.getElementById("loading").style.display = "block";
+        var cropedImage =
+          typeof signature.dataUrl !== "undefined"
+            ? dataURItoBlob(signature.dataUrl)
+            : null;
+        var fileData = new FormData();
+
+        for (var i = 0; i < $scope.attachedImages.length; i++) {
+          var blobedUri = dataURItoBlob($scope.attachedImages[i]);
+          fileData.append(
+            "img" + i.toString(),
+            blobedUri,
+            "img" + i.toString() + ".jpeg"
+          );
+        }
+        if (cropedImage) {
+          fileData.append("file", cropedImage, "signature.png");
+        }
+        fileData.append("sign_file", $scope.sign_file);
+        fileData.append("remarks", $scope.delivered_remarks);
+        fileData.append("returns", $scope.returns);
+        fileData.append("receiver_name", $scope.receiverName);
+        fileData.append("receiver_phone_number", $scope.receiverPhoneNumber);
+        fileData.append("collected_pallets", ($scope.current_stop.small_pallets ? $scope.current_stop.small_pallets : 0));
+        if($scope.current_stop.big_pallets)
+          fileData.append("delivered_pallets", ($scope.current_stop.big_pallets));
+        if($scope.current_stop.collected_plastons)
+          fileData.append("collected_plastons", ($scope.current_stop.collected_plastons));
+        if($scope.current_stop.delivered_plastons)
+          fileData.append("delivered_plastons", ($scope.current_stop.delivered_plastons));
+        fileData.append(
+          "lat",
+          $rootScope.currentPosition ? $rootScope.currentPosition.lat : null
+        );
+        fileData.append(
+          "lng",
+          $rootScope.currentPosition ? $rootScope.currentPosition.lng : null
+        );
+        if($rootScope.currentPosition && $rootScope.currentPosition.address){
+          fileData.append("formattedAddress",$rootScope.currentPosition.address);
+        }
+        
+        $rootScope.signing_error = false;
+        localStorage.setItem('signing_error','false');
+        if(!$rootScope.current_user.async_signing)
+          angular.element("#disgitalSignatureModal").modal("hide");
+        //RUT Adding saving draft for offline mode option
+        try {
+          PodDraftStore.save($scope.current_stop.id, {
+            current_stop: $scope.current_stop,
+            images: $scope.attachedImages,
+            status: status,
+            remarks: $scope.delivered_remarks,
+            returns: $scope.returns,
+            // strings (data URLs) — NO Blobs here
+            signatureDataUrl: (typeof signature.dataUrl !== 'undefined') ? signature.dataUrl : null,
+            // simple fields
+            receiver_name: $scope.receiverName || '',
+            receiver_phone_number: $scope.receiverPhoneNumber || '',
+            // geo snapshot
+            lat: $rootScope.currentPosition ? $rootScope.currentPosition.lat : null,
+            lng: $rootScope.currentPosition ? $rootScope.currentPosition.lng : null,
+            formattedAddress: ($rootScope.currentPosition && $rootScope.currentPosition.address) || '',
+            // anything else you need that is plain JSON (e.g., documentation)
+            documentation: angular.copy($scope.documentation || {}),
+            sign_file: $scope.sign_file || 'no_file',
+          });
+        } catch (e) {
+          // If PodDraftStore.save crashes, log error but continue execution
+          console.error("Error saving draft:", e);
+          // Don't block execution - continue with the rest of the function
+        }
+        //if draft has been saved we can set its status to delivered also if the cation will fail
+        $scope.current_stop.status = 1;
+        $scope.current_stop.draft_status = true;//Draft status for delivered but not synced yet
+        //delete froom activeRoutes
+        $rootScope.activeRoutes = $rootScope.activeRoutes.filter(function(order){
+          return order.id != $scope.current_stop.id;
+        });
+        $rootScope.nonactiveRoutes.push($scope.current_stop);
+
+        // Store images count before clearing (needed for cleanup)
+        var imagesCount = $scope.attachedImages.length;
+        
+        var postReq = $http
+          .post(
+            $rootScope.getBaseUrl() +
+              "order/set_signature&id=" +
+              $scope.current_stop.id +
+              "&images=" +
+              imagesCount,
+            fileData,
+            {
+              headers: {
+                "Content-Type": undefined,
+                "x-csrf-token-app": $scope.identify,
+                "user-token-app": localStorage.getItem("user_id"),
+              },
+            }
+          );
+          if(!$rootScope.current_user.async_signing){
+            postReq.then(
+              function (response) {
+                // Clean up images and FormData after successful submission
+                $scope.attachedImages = [];
+                fileData = null;
+                cropedImage = null;
+                $scope.finishSigning();
+              },
+              function (err) {
+                document.getElementById("loading").style.display = "none";
+                $scope.errorMessage = $rootScope.arraylang['error_message'][$rootScope.selectedlang];
+                // Clean up on error too to prevent memory leaks
+                fileData = null;
+                cropedImage = null;
+                $('#errorModal').modal('show');
+              }
+            );
+          }else{
+            // Add silent error handler to hide loading on error (doesn't block async flow)
+            postReq.catch(function (err) {
+              // Hide loading on error in async mode (silently, doesn't block)
+              var loadingElement = document.getElementById("loading");
+              if(loadingElement) {
+                loadingElement.style.display = "none";
+              }
+            });
+            if(navigator.onLine === false || !AppActivityService.isOnline()){
+              // Clean up before navigating
+              $scope.attachedImages = [];
+              fileData = null;
+              cropedImage = null;
+              $location.path("/orders");
+            }else{
+              // Clean up images after async submission
+              $scope.attachedImages = [];
+              fileData = null;
+              cropedImage = null;
+              $scope.finishSigning();
+            }
+            
+          }
+
+      }
+    };
+    $scope.finishSigning = function(){
+      // el 27.12.21
+      $scope.current_stop.pod = 1;
+      angular.forEach($scope.sub_customer_orders,function(sub_order){
+        if(sub_order.id == $scope.current_stop.id)
+          sub_order.pod = 1;
+      })
+      angular.element("#disgitalSignatureModal").modal("hide");
+      var customer_id = $scope.current_stop.customer_id;
+      var current_id = $scope.current_stop.id;
+      if($rootScope.current_user.pod_option && $scope.sub_customer_orders.length && $scope.sub_customer_orders.filter(function(sub_order){
+        return !sub_order.pod && !sub_order.pod_file_exists;
+      }).length){
+        //there are else pod's
+        $scope.has_signed_pod = false;
+        document.getElementById("loading").style.display = "none";
+        angular.element("#sameCustomerMessageModal").modal("show");
+        setTimeout(function(){
+          angular.element("#sameCustomerMessageModal").modal("hide");
+        },1000);
+      }else
+        $scope.has_signed_pod = true;
+
+      $scope.beforeDone(true);
+    }
+    $scope.hasSigned = function () {
+      var signature = $scope.accept();
+      return (
+        $scope.requier_sign &&
+        (signature.dataUrl == undefined || signature.isEmpty == true)
+      );
+    };
+    function openDigitalSignatureModal(modalid,lastModalId) {
+      if(Array.isArray(lastModalId)){
+        var isVisibleModal = false;
+        angular.forEach(lastModalId,function(id){
+          if($('#' + id).is(':visible')){
+            isVisibleModal = true;
+            //Attaches a function to the closing event
+            $('#' + id).on('hidden.bs.modal', function () {
+              //Opens the new model when the closing completes
+              $('#' + modalid).modal('show');
+              //Unbinds the callback
+              $('#' + id).off('hidden.bs.modal');
+            });
+            //Hides the current modal
+            $('#' + id).modal('hide');
+          }
+        });
+        if(!isVisibleModal){
+          $('#' + modalid).modal('show');
+        }
+      }else{
+        if($('#' + lastModalId).is(':visible')){
+          //Attaches a function to the closing event
+          $('#' + lastModalId).on('hidden.bs.modal', function () {
+            //Opens the new model when the closing completes
+            $('#' + modalid).modal('show');
+            //Unbinds the callback
+            $('#' + lastModalId).off('hidden.bs.modal');
+          });
+          //Hides the current modal
+          $('#' + lastModalId).modal('hide');
+        }else{
+          $('#' + modalid).modal('show');
+        }
+      }          
+    }
+    $scope.openPodFilePreview = function(){
+      if($rootScope.current_user.pod_option){
+          if(!$rootScope.pod_files){
+            document.getElementById("loading").style.display = "none";
+            $scope.errorMessage = $rootScope.arraylang['files_have_not_loaded_yet'][$rootScope.selectedlang];
+            $('#errorModal').modal('show');
+            return;
+          }
+          var orderIndexInGlobalRoute = $filter('getByIdFilter')($rootScope.pod_files, $scope.current_stop.id);
+          if(orderIndexInGlobalRoute>-1 && $rootScope.pod_files[orderIndexInGlobalRoute].pod_file){
+            document.getElementById("loading").style.display = "none";
+            $scope.sign_file = $rootScope.pod_files[orderIndexInGlobalRoute].url;//url
+            //Because here its syncronous check if there is another modal in order to close it before
+            if ($rootScope.pod_files[orderIndexInGlobalRoute].pod_file != "no_file") {
+              openDigitalSignatureModal('podFilePreviewModal',['completingMissionModal','collectingPalletsModal']);
+              var currentPdf = angular.copy($rootScope.pod_files[orderIndexInGlobalRoute]);
+              loadPdf(currentPdf.pod_file,true);
+            } 
+        }
+      }
+    }
+    $scope.openSignFile = function () {
+      // Clear any previous images when opening signature modal for a new POD
+      // This prevents images from previous PODs from persisting
+      // Only clear if we're starting fresh (not loading from draft)
+      if (!$scope.attachedImages || $scope.attachedImages.length === 0) {
+        $scope.attachedImages = [];
+      }
+      
+      if ($rootScope.current_user.pod_display_fields)
+        $scope.initPodDisplayFields();
+      if(!$rootScope.pod_files && !$rootScope.timeoutStatus){
+        if(!$rootScope.wait_for_pod_files){
+          $rootScope.getPodFiles($scope.current_stop.track_id);
+        }
+        document.getElementById("loading").style.display = "none";
+        $scope.errorMessage = $rootScope.arraylang['files_have_not_loaded_yet'][$rootScope.selectedlang];
+        $('#errorModal').modal('show');
+        return;
+      }else if($rootScope.pod_files){
+        var orderIndexInGlobalRoute = $filter('getByIdFilter')($rootScope.pod_files, $scope.current_stop.id);
+        if(orderIndexInGlobalRoute == -1){
+          orderIndexInGlobalRoute = $filter('getByNumOrderFilter')($rootScope.pod_files, $scope.current_stop.num_order);
+        }
+        if(orderIndexInGlobalRoute>-1 && $rootScope.pod_files[orderIndexInGlobalRoute].pod_file){
+          document.getElementById("loading").style.display = "none";
+          $scope.sign_file = $rootScope.pod_files[orderIndexInGlobalRoute].url;//url
+          //Because here its syncronous check if there is another modal in order to close it before
+          openDigitalSignatureModal('disgitalSignatureModal',['completingMissionModal','collectingPalletsModal']);
+          if ($rootScope.pod_files[orderIndexInGlobalRoute].pod_file != "no_file") {
+            var currentPdf = angular.copy($rootScope.pod_files[orderIndexInGlobalRoute]);
+            loadPdf(currentPdf.pod_file);
+          } 
+        }else{
+          document.getElementById("loading").style.display = "none";
+        }
+      }else{
+        $http
+        .get(
+          $rootScope.getBaseUrl() +
+            "order/get_order_pod_file&id=" +
+            $scope.current_stop.id,
+          {
+            headers: {
+              "x-csrf-token-app": $scope.identify,
+              "user-token-app": localStorage.getItem("user_id"),
+            },
+          }
+        )
+        .then(
+          function (data) {
+            if (data.data.status == "error") {
+              document.getElementById("loading").style.display = "none";
+              angular.element("#disgitalSignatureModal").modal("show");
+              $scope.sign_file = data.data.data;
+              // loadPdf($scope.sign_file);
+              //$scope.beforeDone(true);
+            } else {
+              document.getElementById("loading").style.display = "none";
+              angular.element("#disgitalSignatureModal").modal("show");
+              $scope.sign_file = data.data.data;
+              // efrat 18.09.22 put next line in comment - pdf will not open
+              //$window.open($scope.sign_file, '_blank');
+              var currentPdf = angular.copy($scope.sign_file);
+              loadPdf(currentPdf);
+            }
+          },
+          function (err) {
+            document.getElementById("loading").style.display = "none";
+            if (err.status == 401) $location.path("/login");
+            else throw err;
+          }
+        );
+      }
+    };
+
+    $scope.initPodDisplayFields = function () {
+      $scope.podDisplayFields = [];
+
+      //set pod_display_fields as defined
+
+      var fields = $rootScope.current_user.pod_display_fields.split(",");
+      angular.forEach(fields, function (fieldValue) {
+        if ($scope.current_stop.remarks.includes(fieldValue)) {
+          var startIndex = $scope.current_stop.remarks.indexOf(fieldValue);
+          var fieldRange = $scope.current_stop.remarks.slice(startIndex);
+          var endIndex = fieldRange.indexOf(",");
+          fieldRange = fieldRange.slice(0, endIndex);
+          var displayField = {};
+          displayField.key = fieldValue;
+          displayField.value = fieldRange.split(":")[1];
+          $scope.podDisplayFields.push(displayField);
+        } else if ($rootScope.current_user.titles[fieldValue]) {
+          if ($scope.current_stop[$rootScope.current_user.titles[fieldValue]]) {
+            var displayField = {};
+            displayField.key = fieldValue;
+            displayField.value =
+              $scope.current_stop[$rootScope.current_user.titles[fieldValue]];
+            $scope.podDisplayFields.push(displayField);
+          }
+        }
+      });
+    };
+
+
+    $scope.goBack = function () {
+      $viewport = $('head meta[name="viewport"]');
+      $viewport.attr(
+        "content",
+        "width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0, minimal-ui"
+      );
+
+      if ($scope.documentation.start_hour || $rootScope.signing_error || localStorage.getItem('signing_error') == 'true') {
+        //alert("יש ללחוץ על הכפתור מסרתי או על הכפתור לא מסרתי - על מנת לצאת ממסך זה");
+        angular.element("#arrivalReportingAppModal").modal("show");
+      } else if ($rootScope.current_user.pod_option && $scope.sub_customer_orders.filter(function(sub_order){
+        return sub_order.pod;
+      }).length && !$scope.has_signed_pod) {//אם יש מספר תעודות חלק נחתמו וחלק עדיין לא
+        angular.element("#sameCustomerMessageModal").modal("show");
+        setTimeout(function(){
+          angular.element("#sameCustomerMessageModal").modal("hide");
+        },1000);
+      } else {
+        //if(!customerHasMoreOrders())
+        //{
+        $location.path("/orders");
+        //}
+      }
+    };
+
+    $scope.getArrTime = StopService.getArrTime;
+
+    $scope.waze = function (current_stop) {
+      var urlScheme;
+      var url;
+      //var url='http://waze.to/?ll='+current_stop.lat+','+current_stop.lng+'&navigate=yes';
+      if (!$rootScope.current_user.navigation_by_location)
+        url =
+          "http://waze.to/?q=" +
+          current_stop.address.replace(/ /g, "%20") +
+          ";&navigate=yes";
+      else
+        url =
+          "http://waze.to/?ll=" +
+          current_stop.lat +
+          "," +
+          current_stop.lng +
+          "&navigate=yes";
+      
+      // Check if Waze app is installed
+      var userAgent = navigator.userAgent || navigator.vendor || window.opera;
+      if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+          urlScheme = "waze://?"+url.split('?')[1];
+      } else {
+          urlScheme = url; // Fallback to website URL
+      }
+  
+      // Attempt to launch Waze app or fallback to website
+      var newTab = window.open(urlScheme, '_blank');
+      newTab.focus(); // Focus on the newly opened tab
+      // var url;
+      // //var url='http://waze.to/?ll='+current_stop.lat+','+current_stop.lng+'&navigate=yes';
+      // if (!$rootScope.current_user.navigation_by_location)
+      //   url =
+      //     "http://waze.to/?q=" +
+      //     current_stop.address.replace(/ /g, "%20") +
+      //     ";&navigate=yes";
+      // else
+      //   url =
+      //     "http://waze.to/?ll=" +
+      //     current_stop.lat +
+      //     "," +
+      //     current_stop.lng +
+      //     "&navigate=yes";
+      // // window.location.href = url;
+      // setTimeout(function(){
+      //   document.location.href = url;
+      // },250);
+
+      /*var data = {
+
+			data : {
+
+				next_sms_name : $scope.current_stop.customer_name,
+
+				next_sms_phone : $scope.current_stop.phone,
+
+				next_sms_id : $scope.current_stop.id
+
+			}
+
+		}
+
+		$.ajax({
+
+			url : $rootScope.getBaseUrl() + 'order/sms',
+
+			data : data,
+
+			type : 'post',
+
+			headers : {
+
+				'x-csrf-token-app' : $scope.identify,
+				'user-token-app' : localStorage.getItem("user_id")
+
+			}
+
+		}).then(function suc(response) {
+
+		}, function fail(data) {
+
+
+
+		});*/
+    };
+
+    $scope.pinMap = function () {
+      var map;
+
+      var marker;
+
+      var geocoder = new google.maps.Geocoder();
+
+      var infowindow = new google.maps.InfoWindow();
+
+      var myLatlng = new google.maps.LatLng(
+        $scope.current_stop.lat,
+        $scope.current_stop.lng
+      );
+
+      //currentPosition&&currentPosition.lat&&currentPosition.lng?new google.maps.LatLng(currentPosition.lat,currentPosition.lng):new google.maps.LatLng($scope.current_stop.lat,$scope.current_stop.lng);
+
+      var mapOptions = {
+        zoom: 18,
+
+        center: myLatlng,
+
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+      };
+
+      $scope.address.opening_time =
+        $scope.current_stop.customer &&
+        $scope.current_stop.customer.opening_time
+          ? new Date($scope.current_stop.customer.opening_time)
+          : null;
+
+      $scope.address.closing_time =
+        $scope.current_stop.customer &&
+        $scope.current_stop.customer.closing_time
+          ? new Date($scope.current_stop.customer.closing_time)
+          : null;
+
+      $scope.address.customer_name = $scope.current_stop.customer_name;
+
+      //$scope.tempAddress = {};
+
+      map = new google.maps.Map(document.getElementById("pinMap"), mapOptions);
+
+      marker = new google.maps.Marker({
+        map: map,
+
+        position: myLatlng,
+
+        draggable: true,
+      });
+
+      marker.addListener("click", function () {
+        infowindow.open(map, marker);
+      });
+
+      var infowindow = new google.maps.InfoWindow({
+        content: "",
+      });
+
+      geocoder.geocode(
+        {
+          latLng: myLatlng,
+        },
+        function (results, status) {
+          if (status == google.maps.GeocoderStatus.OK) {
+            if (results[0]) {
+              $scope.address.address = results[0].formatted_address;
+
+              $scope.address.lat = marker.getPosition().lat();
+
+              $scope.address.lng = marker.getPosition().lng();
+
+              if (!$scope.$$phase) $scope.$apply();
+
+              infowindow.setContent(results[0].formatted_address);
+
+              infowindow.open(map, marker);
+            }
+          }
+        }
+      );
+
+      google.maps.event.addListener(marker, "dragend", function () {
+        geocoder.geocode(
+          {
+            latLng: marker.getPosition(),
+          },
+          function (results, status) {
+            if (status == google.maps.GeocoderStatus.OK) {
+              if (results[0]) {
+                console.log(results);
+
+                console.log(marker.getPosition().lat());
+
+                console.log(marker.getPosition().lng());
+
+                $scope.address.address = results[0].formatted_address;
+
+                var components = [];
+
+                for (var i = 0; i < results[0].address_components.length; i++) {
+                  components[results[0].address_components[i].types.join(" ")] =
+                    results[0].address_components[i].long_name;
+                }
+
+                $scope.address.lat = marker.getPosition().lat();
+
+                $scope.address.lng = marker.getPosition().lng();
+
+                $scope.address.country = components["country political"];
+
+                $scope.address.city = components["locality political"];
+
+                $scope.address.street = components["route"];
+
+                $scope.address.street_number = components["street_number"];
+
+                infowindow.setContent($scope.address.address);
+
+                infowindow.open(map, marker);
+              }
+            }
+
+            if (!$scope.$$phase) $scope.$apply();
+          }
+        );
+      });
+    };
+    $scope.updateLocation = function () {
+      StopService.updateAddressLocation($scope.current_stop);
+    };
+
+    $scope.updateAddresss = function () {
+      $scope.address.opening_time = $scope.address.opening_time
+        ? $filter("date")(new Date($scope.address.opening_time), "HH:mm:ss")
+        : null;
+
+      $scope.address.closing_time = $scope.address.opening_time
+        ? $filter("date")(new Date($scope.address.closing_time), "HH:mm:ss")
+        : null;
+
+      $scope.current_stop.lat = $scope.address.lat;
+
+      $scope.current_stop.lng = $scope.address.lng;
+
+      $scope.current_stop.country = $scope.address.country;
+
+      $scope.current_stop.city = $scope.address.city;
+
+      $scope.current_stop.street = $scope.address.street;
+
+      $scope.current_stop.number = $scope.address.number;
+
+      $scope.current_stop.customer_name = $scope.address.customer_name;
+
+      //upload parking and unloading area images
+      var formData = new FormData();
+      if($scope.current_stop.parking_area_img){
+        var blobedUri = dataURItoBlob($scope.current_stop.parking_area_img);
+        formData.append('parking_area_img', blobedUri , 'parking_area_img.jpeg');
+      }
+      if($scope.current_stop.unloading_area_img){
+        var blobedUri = dataURItoBlob($scope.current_stop.unloading_area_img);
+        formData.append('unloading_area_img', blobedUri , 'unloading_area_img.jpeg');
+      }
+      formData.append('address', JSON.stringify($scope.address));
+      formData.append('order', JSON.stringify($scope.current_stop));
+      $http
+        .post(
+          $rootScope.getBaseUrl() +
+            "customeraddress/update_from_app" +
+            ($scope.address.id ? "&id=" + $scope.address.id : ""),
+            formData,
+          {
+            headers: {
+              "Content-Type": undefined,
+              "x-csrf-token-app": $scope.identify,
+              "user-token-app": localStorage.getItem("user_id"),
+            },
+          }
+        )
+        .then(
+          function (response) {
+            return response;
+          },
+          function (err) {}
+        );
+    };
+
+    $scope.sendSms = function () {
+      var data = {
+        data: {
+          next_sms_name: $scope.current_stop.customer_name,
+
+          next_sms_phone: $scope.current_stop.phone,
+
+          next_sms_id: $scope.current_stop.id,
+        },
+      };
+
+      $.ajax({
+        url: $rootScope.getBaseUrl() + "order/sms",
+
+        data: data,
+
+        type: "post",
+
+        headers: {
+          "x-csrf-token-app": $scope.identify,
+          "user-token-app": localStorage.getItem("user_id"),
+        },
+      }).then(
+        function suc(response) {
+          var data = JSON.parse(response);
+
+          debugger;
+
+          if (data.status && data.status !== "ok") {
+            if (data.data) {
+              alert(data.data);
+            }
+          } else {
+            alert("SMS נשלח בהצלחה");
+          }
+        },
+        function fail(data) {}
+      );
+    };
+
+    $scope.sendSmsBtn = function () {
+      var res = $scope.sendSms();
+
+      if (res) alert(res);
+    };
+
+    $scope.markComplete = function (order) {
+      document.getElementById("loading").style.display = "block";
+      
+      if(order.status != 0 && order.status != 4){
+        $scope.double_documentaion = true;
+      }
+
+      $scope.current_stop = order;
+
+      if($scope.current_stop.address_note && $scope.has_reported_mission == false){
+        $scope.reportCompletingMission(false,true,order);
+      }else if($rootScope.current_user.report_pallets_collection && (!$rootScope.current_user.pod_option || 
+        ($scope.sub_customer_orders.length && $scope.sub_customer_orders.filter(function(sub_order){
+        return !sub_order.pod;
+      }).length == 1))){
+        $scope.reportCollectingPallets(true);
+      }else if ($rootScope.current_user.pod_option) {
+        $scope.openSignFile();
+      } else {
+        document.getElementById("loading").style.display = "none";
+        angular.element("#delivery").modal("show");
+        //$scope.beforeDone(true);
+      }
+    };
+
+    $scope.setCurrentPallets = function(plastons=false) {
+      if (!$scope.current_user.two_kinds_of_pallets || $scope.current_user.two_kinds_of_pallets_regular_or_plastons) {
+          if(plastons){
+            $scope.plaston_pallets = 1;
+            $scope.regular_pallets = 0;
+          }else{
+            $scope.plaston_pallets = 0;
+            $scope.regular_pallets = 1;
+          }
+          }
+    };
+  
+    $scope.reportCollectingPallets = function (
+      status = $scope.delivery_status
+    ) {
+      
+      if ($scope.has_reported_pallets == false) {
+        //pallets-KafuZan
+        if($rootScope.current_user.two_kinds_of_pallets){
+          $scope.current_stop.small_pallets = 0;//collected
+          $scope.current_stop.big_pallets = 0;//given now
+        }
+        $scope.has_reported_pallets = true;
+        $scope.delivery_status = status;
+        document.getElementById("loading").style.display = "none";
+        angular.element("#collectingPalletsModal").modal("show");
+      } else {
+        //&& $scope.current_stop.big_pallets != undefined עקב ביטול משטחי עץ
+        document.getElementById("loading").style.display = "block";
+        if (
+          ($scope.requier_surface &&
+            $scope.current_stop.small_pallets != undefined)  ||
+          !$scope.requier_surface
+        ) {
+          angular.element("#collectingPalletsModal").modal("hide");
+          //$scope.beforeDone(status);
+          if ($rootScope.current_user.pod_option) {
+            $scope.openSignFile();
+          } else {
+            document.getElementById("loading").style.display = "none";
+            angular.element("#delivery").modal("show");
+            //$scope.beforeDone(true);
+          }
+        } else {
+          document.getElementById("loading").style.display = "none";
+          $scope.invalid_reporting = 1;
+        }
+      }
+    };
+
+    $scope.reportCompletingMission = function (
+      confirmMission,status = $scope.delivery_status,order=$scope.current_stop
+    ) {
+      if ($scope.has_reported_mission == false) {
+        $scope.has_reported_mission = true;
+        $scope.delivery_status = status;
+        document.getElementById("loading").style.display = "none";
+        angular.element("#completingMissionModal").modal("show");
+      } else {
+        if (confirmMission) 
+          $scope.current_stop.requires_confirmation = 2;//RUT requires_confirmation posible values 0-false,1-true,2-confirmed
+        angular.element("#completingMissionModal").modal("hide");
+        if(status)
+          $scope.markComplete(order);
+        else  
+          $scope.beforeDone(status);
+      }
+    };
+    $scope.deleteExistDocumentaion = function(status){
+      connectPOSTService.fn('documentation/delete_unsigned_doc&stopid='+$scope.current_stop.id).then(function(data) {
+        $scope.double_documentaion = false;  
+        $scope.current_stop.status = 0;
+        $scope.beforeDone(status);
+      }, function(err) {
+        
+      });
+    }
+    $scope.beforeDone = function (status) {
+
+      if(navigator.onLine && ($scope.double_documentaion || ($scope.current_stop.status != 0 && $scope.current_stop.status != 4 && !$scope.current_stop.draft_status))){
+        $scope.deleteExistDocumentaion(status);
+        return 0;
+      }
+
+      if (status) angular.element("#delivery").modal("hide");
+      else angular.element("#no-get").modal("hide");
+      if (
+        $scope.current_stop.address_note &&
+        $scope.has_reported_mission == false
+      ) {
+        $scope.reportCompletingMission(false,status);
+        return 0;
+      }
+      if (
+        $rootScope.current_user.report_pallets_collection &&
+        $scope.has_reported_pallets == false &&
+        (!$rootScope.current_user.pod_option || $scope.has_signed_pod)
+      ) {       
+          $scope.reportCollectingPallets(status);
+          return 0; 
+      }
+
+      var podSigned = $scope.has_signed_pod;
+
+      //RUT Adding saving draft for offline mode option
+      //If we are on pod option on and the status is delivered so we know that there is a draft saved already in function signForm
+      if(!$rootScope.current_user.pod_option || !status){
+        try {
+          PodDraftStore.save($scope.current_stop.id, {
+            current_stop: $scope.current_stop,
+            status: status,
+            remarks: $scope.delivered_remarks,
+            returns: $scope.returns,
+            // simple fields
+            receiver_name: $scope.receiverName || '',
+            receiver_phone_number: $scope.receiverPhoneNumber || '',
+            // geo snapshot
+            lat: $rootScope.currentPosition ? $rootScope.currentPosition.lat : null,
+            lng: $rootScope.currentPosition ? $rootScope.currentPosition.lng : null,
+            formattedAddress: ($rootScope.currentPosition && $rootScope.currentPosition.address) || '',
+            // anything else you need that is plain JSON (e.g., documentation)
+            documentation: angular.copy($scope.documentation || {}),
+          });
+        } catch (e) {
+          // If PodDraftStore.save crashes, log error but continue execution
+          console.error("Error saving draft in beforeDone:", e);
+          // Don't block execution - continue with the rest of the function
+        }
+        //if draft has been saved we can set its status to delivered also if the cation will fail
+        $scope.current_stop.status = status ? 1 : 2;
+        $scope.current_stop.draft_status = true;//Draft status for delivered but not synced yet
+        //delete froom activeRoutes
+        $rootScope.activeRoutes = $rootScope.activeRoutes.filter(function(order){
+          return order.id != $scope.current_stop.id;
+        });
+        $rootScope.nonactiveRoutes.push($scope.current_stop);
+      }
+
+      setTimeout(function () {
+        StopService.markComplete(
+          $scope.current_stop,
+          status,
+          $scope.next_stop,
+          $scope.delivered_remarks
+        );
+
+        if (
+          $scope.documentation.start_hour &&
+          ($rootScope.current_user.arrival_reporting_app || status || !status)
+        ) {
+          $scope.endDocumentation();
+        } else {
+          StopService.startDocumentation(
+            $scope.current_stop,
+            true,
+            $scope.delivered_remarks,
+            $scope.returns
+          ).then(
+            function (response) {
+              var customer_id = $scope.current_stop.customer_id;
+              var current_id = $scope.current_stop.id;
+              if(!status || (podSigned && !$rootScope.signing_error && (localStorage.getItem('signing_error') == 'false' || !localStorage.getItem('signing_error'))) || !$rootScope.current_user.pod_option){
+                $rootScope.nextStopRef = true;
+                $location.path("/orders");
+                document.getElementById("loading").style.display = "none";
+              }else{
+                if($rootScope.signing_error || localStorage.getItem('signing_error') == 'true'){
+                  $scope.current_stop.status = 0;
+                  $scope.has_signed_pod = false;
+                }
+                document.getElementById("loading").style.display = "none";
+              }
+            },
+            function fail(data) {
+              $rootScope.nextStopRef = true;
+              $location.path("/orders");
+              document.getElementById("loading").style.display = "none";
+
+              console.log(
+                "(done) Error occured while trying to contact server"
+              );
+            }
+          );
+        }
+      }, 500);
+    };
+
+    //save expense
+
+    $scope.expense = function () {
+      var data = {
+        data: {
+          messenger: localStorage.getItem("user_id"),
+
+          track_id: localStorage.getItem("track_id"),
+
+          expense: $scope.current_expense,
+        },
+      };
+
+      $.ajax({
+        url: $rootScope.getBaseUrl() + "expenses/savexpenses",
+
+        data: data,
+
+        type: "post",
+
+        headers: {
+          "x-csrf-token-app": $scope.identify,
+          "user-token-app": localStorage.getItem("user_id"),
+        },
+      }).then(
+        function (response) {
+          if (response == "ok") {
+          } else {
+            alert("error occured while saving expense");
+          }
+        },
+        function (data) {
+          alert("(save expense) error while trying connect server");
+        }
+      );
+    };
+
+    $scope.startDocumentation = function (end = false) {
+      if ($scope.documentation.start_hour) {
+        alert("ביצעת כבר כניסה ללקוח זה.");
+
+        return;
+      }
+
+      StopService.startDocumentation(
+        $scope.current_stop,
+        end,
+        $scope.delivered_remarks,
+        $scope.returns
+      ).then(
+        function (response) {
+          $scope.documentation = response.data.documentation;
+
+          $scope.documentation.start_hour = $scope.documentation.start_hour
+            ? new Date($scope.documentation.start_hour)
+            : undefined;
+        },
+        function (err) {
+          if (err.status == 401) $location.path("/login");
+          else throw err;
+        }
+      );
+    };
+
+    function customerHasMoreOrders() {
+      var customer_more_orders = false;
+      for (i = 0; i < $rootScope.activeRoutes.length; i++) {
+        if (
+          $scope.activeRoutes[i].customer_id ==
+            $scope.current_stop.customer_id &&
+          $scope.activeRoutes[i].id != $scope.current_stop.id
+        ) {
+          $location.path("/nextStop/" + $scope.activeRoutes[i].id);
+          customer_more_orders = true;
+          break;
+        }
+      }
+      return customer_more_orders;
+    }
+
+    $scope.endDocumentation = function (end = false) {
+      document.getElementById("loading").style.display = "block";
+
+      if ($scope.documentation && !$scope.documentation.start_hour) {
+        alert("עליך לבצע כניסה תחילה.");
+
+        return;
+      }
+
+      StopService.endDocumentation(
+        $scope.current_stop,
+        $scope.documentation,
+        $scope.delivered_remarks,
+        $scope.returns
+      ).then(
+        function (response) {
+          if (response.data.status == "SUCCESS" && !$rootScope.signing_error && (localStorage.getItem('signing_error') == 'false' || !localStorage.getItem('signing_error'))) {
+            // eluria changed 02.15.22 | before: route to $location.path('/orders'); withot cheack
+            // var customer_more_orders = false;
+            // for(i=0;i<$rootScope.activeRoutes.length; i++) {
+            // if($scope.activeRoutes[i].customer_id==$scope.current_stop.customer_id&&
+            // $scope.activeRoutes[i].id!=$scope.current_stop.id){
+            // $location.path('/nextStop/'+$scope.activeRoutes[i].id);
+            // customer_more_orders =true;
+            // break;
+            // }
+            // }
+
+            //if(!customerHasMoreOrders())
+            //{
+            $rootScope.nextStopRef = true;
+            $location.path("/orders");
+            //}
+          } else {
+            alert("ארעה שגיאה בעת שמירת הנתונים.");
+          }
+          document.getElementById("loading").style.display = "none";
+        },
+        function (err) {
+          document.getElementById("loading").style.display = "none";
+
+          if (err.status == 401) $location.path("/login");
+          else throw err;
+        }
+      );
+    };
+    //RUTEL PROPLUS item-management
+    $scope.editItem = function (item, index) {
+      if (!item.isEditingItem) {
+        item.isEditingItem = true;
+        setTimeout(function () {
+          $("#item-amount-" + index).focus();
+        }, 500);
+      } else {
+        $http
+          .put(
+            $rootScope.getBaseUrl() + "orderitems/update_item&id=" + item.id,
+            item,
+            {
+              headers: {
+                "x-csrf-token-app": $scope.identify,
+                "user-token-app": localStorage.getItem("user_id"),
+              },
+            }
+          )
+          .then(function (data) {
+            item.isEditingItem = false;
+          });
+      }
+    };
+    //RUTEL CBC marked_column
+    $scope.getRemarks = function () {
+      $scope.marked_columns = [];
+      var remarks = $scope.current_stop.remarks.split(",");
+      $scope.current_stop.remarks = "";
+      angular.forEach(remarks, function (remark) {
+        var title = remark.split(":");
+        if (title.length > 1 && title[0].includes("*")) {
+          $scope.marked_columns.push(title);
+        } else {
+          $scope.current_stop.remarks += remark + ","; //+","
+        }
+      });
+    };
+    $scope.noFileNotification = function(num_order){
+      if (!$scope.dynamicMessage) {
+        // If the base message is not yet created, initialize it with the first order
+        $scope.dynamicMessage = 
+            $rootScope.arraylang['no_pod_file'][$rootScope.selectedlang] + 
+            num_order + 
+            $rootScope.arraylang['please_manual_signing'][$rootScope.selectedlang];
+      } else if($scope.dynamicMessage.includes($rootScope.arraylang['no_pod_file'][$rootScope.selectedlang])){
+          // The message already exists; parse and append the new order number
+          const baseMessageStart = $rootScope.arraylang['no_pod_file'][$rootScope.selectedlang];
+          const baseMessageEnd = $rootScope.arraylang['please_manual_signing'][$rootScope.selectedlang];
+
+          if ($scope.dynamicMessage.includes(baseMessageStart) && $scope.dynamicMessage.includes(baseMessageEnd)) {
+              // Extract the current orders in the message
+              const currentOrders = $scope.dynamicMessage
+                  .replace(baseMessageStart, '') // Remove the start part
+                  .replace(baseMessageEnd, '')   // Remove the end part
+                  .split($rootScope.arraylang['and_order'][$rootScope.selectedlang])
+                  .map(order => order.trim());
+
+              // Add the new order number if it’s not already included
+              if (!currentOrders.includes(num_order)) {
+                  $scope.dynamicMessage = baseMessageStart +
+                      currentOrders.join($rootScope.arraylang['and_order'][$rootScope.selectedlang]) +
+                      $rootScope.arraylang['and_order'][$rootScope.selectedlang] +
+                      num_order +
+                      baseMessageEnd;
+              }
+          }
+      }
+     
+      $scope.dynamicFunction = undefined;
+      angular.element('#dynamicMessageModal').modal('show');
+    }
+    $scope.urlExists = function(url,order,withRemarks=false) {
+      $http.get(url+(withRemarks ? "_ERR.pdf" : ".pdf"))
+          .then(function(response) {
+              if (response.status === 200) {
+                order.pod_file_exists = true;
+                $scope.has_signed_pod = !($scope.sub_customer_orders.filter(function(sub_order){
+                  return  !sub_order.pod_file_exists || !sub_order.status;
+                }).length);
+                // URL exists, do something here
+              } else {
+                  if(!withRemarks)
+                    $scope.urlExists(url,order,true);
+                  else{
+                    order.pod_file_exists = false;
+                  }                   
+                  // URL does not exist, handle it accordingly
+              }
+          })
+          .catch(function(error) {
+            if(!withRemarks)
+              $scope.urlExists(url,order,true);
+            else{
+              order.pod_file_exists = false;
+            }
+            
+              // Handle error (e.g., network error)
+          });
+    };
+    function getStop(id) {
+      // $http
+      //   .get($rootScope.getBaseUrl() + "order/get_order&id=" + id, {
+      //     headers: {
+      //       "x-csrf-token-app": $scope.identify,
+      //       "user-token-app": localStorage.getItem("user_id"),
+      //     },
+      //   })
+      //   .then(
+      //     function (data) {
+      //       if (data.data.status == "SUCCESS") {
+      //         if (data.data.data && data.data.data.id) {
+      //$scope.current_stop = data.data.data;
+      //RUT 28/10/2025 adding offline option
+      $scope.current_stop = $rootScope.crnt_route.filter(function(stop) {
+        return stop.id == id;
+      })[0];
+      if(!$scope.current_stop){
+        $location.path("/orders");
+        return;
+      }
+      $scope.receiverPhoneNumber = $scope.current_stop.copy_pod_receiver_phone ? $scope.current_stop.copy_pod_receiver_phone : undefined;
+      $scope.existingReceiverPhoneNumber = $scope.current_stop.copy_pod_receiver_phone ? true : false;
+      if($rootScope.signing_error || localStorage.getItem('signing_error') == 'true'){
+        $scope.current_stop.status = 0;
+        $scope.errorMessage = $rootScope.arraylang['error_message'][$rootScope.selectedlang];
+        $('#errorModal').modal('show');
+      }else if($scope.current_stop.address_note || $scope.current_stop.customer.address_note){
+        $('#remarksModal').modal('show');
+      }
+
+      
+      //sub orders issue
+      var customer_id = $scope.current_stop.customer_id;
+      $scope.sub_customer_orders = [];
+      if(!$rootScope.crnt_route || !$rootScope.crnt_route.length){
+        $scope.sub_customer_orders.push($scope.current_stop);
+        if(!$rootScope.pod_files && !$rootScope.wait_for_pod_files){
+          $rootScope.getPodFiles($scope.current_stop.track_id);
+        }
+      }else{
+        var numOrders = [];
+        // $scope.sub_customer_orders = $rootScope.crnt_route.filter(function(item){
+        //   return (item.customer_id === customer_id && item.original_address == $scope.current_stop.original_address);//item.status == 0 && 
+        // });
+        var date = new Date($scope.current_stop.time_order);
+        var day = date.getDate();
+        var paddedDay = (day < 10) ? '0' + day : day;
+        var month = (date.getMonth())+1;
+        var paddedMonth = (month < 10) ? '0' + month : month;
+
+        angular.forEach($rootScope.crnt_route,function(sub_order,key){
+          if(sub_order.customer_id === customer_id && sub_order.original_address == $scope.current_stop.original_address && !numOrders.includes(sub_order.num_order)){
+            if(sub_order.id == $scope.current_stop.id){
+              sub_order.status = $scope.current_stop.status;                       
+            }
+            if($rootScope.current_user.pod_option){
+              // Only load draft for the current stop, not for all sub-orders
+              // This prevents images from accumulating across multiple PODs
+              if(sub_order.id == $scope.current_stop.id){
+                const draft = PodDraftStore.load($scope.current_stop.id);
+                if (draft.images) {
+                  $scope.attachedImages = angular.copy(draft.images); // Use copy to avoid reference issues
+                } else {
+                  $scope.attachedImages = []; // Clear images if no draft
+                }
+                if (draft.remarks) $scope.delivered_remarks = draft.remarks;
+                if (draft.returns) $scope.returns = draft.returns;
+              }
+              $scope.urlExists("https://opti-cstmr-files.s3.us-east-2.amazonaws.com/"+$rootScope.current_user.user_name + "/pod/"+date.getFullYear()+"/"+(paddedMonth)+"/"+paddedDay+"/"+sub_order.num_order+"_sign_"+$filter('date')(new Date(sub_order.time_order), 'yyyy_MM_dd').toString(),sub_order,false);
+            }
+            $scope.sub_customer_orders.push(sub_order);
+            numOrders.push(sub_order.num_order);
+          }
+        });
+      }
+
+      if($rootScope.current_user.no_pod_file_notification && $rootScope.pod_files){
+        var orderIndexInGlobalRoute = $filter('getByIdFilter')($rootScope.pod_files, $scope.current_stop.id);
+        if(orderIndexInGlobalRoute>-1 && $rootScope.pod_files[orderIndexInGlobalRoute] 
+          && $rootScope.pod_files[orderIndexInGlobalRoute].pod_file == "no_file"){
+              $scope.noFileNotification($scope.current_stop.num_order);
+        } 
+      }
+
+      $scope.has_reported_mission = false;
+      // $scope.next_stop = data.data.next_stop;
+
+      // Clear images when loading a new stop (will be loaded from draft if exists for current stop)
+      // This ensures we start fresh for each POD and prevents memory accumulation
+      // Note: Images will be restored from draft if they exist for this specific stop
+      if (!$scope.attachedImages || $scope.attachedImages.length === 0) {
+        $scope.attachedImages = [];
+      }
+
+      //RUT 28/10/25 offline mode get the next order in the activeRoutes
+      $scope.next_stop = $rootScope.crnt_route.filter(function(stop) {
+        return stop.stop_index = $scope.current_stop.stop_index + 1;
+      })[0];
+      $scope.address = $scope.current_stop.customer
+        ? $scope.current_stop.customer
+        : {};
+      $scope.getRemarks();
+                
+        // } 
+        //       else {
+        //         $location.path("/orders");
+        //       }
+        //     }
+        //   },
+        //   function (err) {
+        //     if (err.status == 401) $location.path("/login");
+        //     else throw err;
+        //   }
+        // );
+    }
+    //Exit from digital signature modal
+    $scope.confirmClosingDigitalSignatureModal = function(){
+      $scope.dynamicMessage = $rootScope.arraylang['confirm_close_sign_modal'][$rootScope.selectedlang];
+      $scope.dynamicFunction = $scope.closeDigitalSignatureModal;
+      angular.element('#dynamicMessageModal').modal('show');
+    }
+    $scope.closeDigitalSignatureModal = function(){
+      angular.element('#dynamicMessageModal').modal('hide');
+      angular.element('#disgitalSignatureModal').modal('hide');
+      // Hide loading indicator in case it was left showing due to an error
+      var loadingElement = document.getElementById("loading");
+      if(loadingElement) {
+        loadingElement.style.display = "none";
+      }
+    }
+    $scope.closepodFilePreviewModal = function(){
+      angular.element('#podFilePreviewModal').modal('hide');
+    }
+    //Cleaning the signature
+    $scope.confirmcleaningSignature = function(){
+      $scope.dynamicMessage = $rootScope.arraylang['confirm_cleaning_signature'][$rootScope.selectedlang];
+      $scope.dynamicFunction = $scope.cleaningSignature;
+      angular.element('#dynamicMessageModal').modal('show');
+    }
+    $scope.cleaningSignature = function(){
+      $scope.closeDynamicModal();
+      setTimeout(function(){
+        $scope.$apply();
+        angular.element('#clearBtn').trigger('click');
+      },500);
+    }
+    //Sending the signature
+    $scope.confirmSendingSignature = function(){
+      if($scope.has_signed_pod)
+        $scope.double_documentaion = true;
+      // if(!$window.navigator.onLine){
+      //   $scope.dynamicMessage = $rootScope.arraylang['no_wifi_connection'][$rootScope.selectedlang];
+      //   $scope.dynamicFunction = undefined;
+      //   angular.element('#dynamicMessageModal').modal('show');
+      // }else 
+      $scope.delivery_status = true;
+      if($scope.delivered_remarks.length){
+        $scope.init_sign=false;
+        $scope.signForm();
+      }else{
+        $scope.dynamicMessage = $rootScope.arraylang['confirm_send_sign_without_remarks'][$rootScope.selectedlang];
+        $scope.dynamicFunction = $scope.sendingSignature;
+        angular.element('#dynamicMessageModal').modal('show');
+      } 
+    }
+    $scope.sendingSignature = function(){
+      $scope.closeDynamicModal();
+      $scope.init_sign=false;
+      $scope.signForm();
+    }
+    //Close dynamic modal
+    $scope.closeDynamicModal = function(){
+      $scope.dynamicMessage = "";
+      //Attaches a function to the closing event
+      $('#dynamicMessageModal').on('hidden.bs.modal', function () {
+        //Opens the new model when the closing completes
+        $('body').addClass('modal-open');
+        //Unbinds the callback
+        $('#dynamicMessageModal').off('hidden.bs.modal');
+      });
+      angular.element('#dynamicMessageModal').modal('hide');
+    }
+    //
+    $scope.checkValidReturns = function(){
+      $scope.validReturnsLength = $scope.returns.length < 120;
+    }
+    //
+    function initializeWebcam() {
+      Webcam.set({
+          width: 330,
+          height: 500,
+          image_format: "jpeg",
+          jpeg_quality: 100,
+          params: {
+              dest_width: 200,
+              dest_height: 160,
+          },
+          constraints: {
+              facingMode: { ideal: "environment" } // Adjust if needed
+          }
+      });
+  
+      // Attach webcam to the elements when loaded
+      Webcam.on('load', function() {
+          $scope.cameraReady = true;
+          // Webcam.attach('#camera');
+          // Webcam.attach('#updateAddressCamera');
+      });
+  
+      Webcam.on('error', function(err) {
+          console.error("Webcam failed to load: ", err);
+      });
+    }
+  
+    function init() {
+
+      var id = parseInt($routeParams.id);
+
+      if ($rootScope.documentation) {
+        $scope.documentation = $rootScope.documentation;
+
+        $scope.documentation.start_hour = new Date(
+          $scope.documentation.start_hour
+        );
+
+        if ($rootScope.documentation.goBackToStopPage)
+          angular.element("#arrivalReportingAppModal").modal("show");
+
+        $rootScope.documentation = undefined;
+      } else {
+        $scope.documentation = {};
+      }
+
+      // Initialize camera based on environment (Cordova or Browser)
+      $scope.cameraReady = false;
+      
+      document.addEventListener('deviceready', function() {
+        // Check if Cordova and permissions are available
+        if (window.cordova && cordova.plugins && cordova.plugins.permissions) {
+            // Check if the app already has camera permission
+            cordova.plugins.permissions.checkPermission(
+                cordova.plugins.permissions.CAMERA,
+                function(status) {
+                    if (status.hasPermission) {
+                        // Permission already granted, initialize the webcam
+                        setTimeout(() => {
+                          initializeWebcam();
+                        }, 1000); // Delay to ensure WebView and components are ready
+                    } else {
+                        // Request permission only if it hasn't been granted yet
+                        cordova.plugins.permissions.requestPermission(
+                            cordova.plugins.permissions.CAMERA,
+                            function(status) {
+                                if (status.hasPermission) {
+                                    // Permission granted, initialize the webcam
+                                    setTimeout(() => {
+                                      initializeWebcam();
+                                    }, 1000); // Delay to ensure WebView and components are ready
+                                } else {
+                                    console.error("Camera permission denied");
+                                }
+                            },
+                            function() {
+                                console.error("Camera permission request failed");
+                            }
+                        );
+                    }
+                },
+                function() {
+                    console.error("Permission check failed");
+                }
+            );
+        } else {
+            // If not on a Cordova device, initialize the webcam directly for browser use
+            setTimeout(() => {
+              initializeWebcam();
+            }, 1000); // Delay to ensure WebView and components are ready
+        }
+      });
+
+      // If deviceready already fired or not in Cordova environment, initialize directly
+      if (!window.cordova || (window.cordova && cordova.plugins && cordova.plugins.permissions)) {
+        setTimeout(() => {
+          initializeWebcam();
+        }, 1000);
+      }
+
+      getStop(id);
+    }
+    init();
+  },
+]);

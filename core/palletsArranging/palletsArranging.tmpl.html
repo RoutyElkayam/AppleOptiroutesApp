@@ -1,0 +1,119 @@
+<style>
+	/*li{
+		text-align: right;
+		font-size: 120% !important;
+		color:black;
+	}*/
+</style>
+<div id="loading" style="background-color:white; width:100%; height:100vh;" >
+	<div class="wrap_loader">
+		<div class="gauge-loader"></div>
+		<p style="display:block;width:100%" class="load_txt">
+			{{arraylang['loading'][selectedlang]}}...
+		</p>
+	</div>
+</div>
+
+
+<div id="nonloading" style="font-size: 150% !important">
+  <div id="logo" class="col-xs-12 logo" ><!-- style="width:100%; height:50px;" -->
+		<div class="col-xs-4">
+			<img ng-click="goBack()" src="img/back.svg" class="top-right">
+		</div>
+		<div class="col-xs-4 no-padding">				
+				<img src="img/LOGO.svg" class="logo-img">
+		</div>
+		
+  </div>
+
+  <div class="table-container col-xs-12">
+  	<div class="col-xs-12">
+			<span   type="button" class="col-xs-3 btn btn-default top-left" style="width: 30px  !important" ng-click="addTrow()">+</span>
+  		  	<p class="col-xs-9" style="text-align: center;font-size: 22px;color: #2D819E"> {{arraylang['pallet_self_order'][selectedlang]}} <span style="font-weight: 700">{{current_user.name}}</span></p>
+  			<span  class="circle-urgency" ><i class="fa fa-truck"  ></i></span> 
+  	</div>
+	  <table class="table table-bordered">
+	    <tr ng-repeat="n in [].constructor(5)  track by $index" class="repeatedRows" ng-if="rowWithOrders[$index]==true || $index > minRow">
+	    	<td class="col-xs-6 pallet-order" style="text-align: center;">
+	    		<p>
+				<select id="{{getId($index,0)}}" class="js-example-basic-multiple form-control" name="states[]" multiple="multiple">
+					    <option  ng-repeat="order in crnt_route"  value="{{order.id}}" >
+								{{getPalletIndex(order.id)}}&nbsp;&nbsp;&nbsp; 
+								{{arraylang['units'][selectedlang]}}:{{order.amount}} &nbsp;&nbsp;&nbsp;
+	 							{{arraylang['weight'][selectedlang]}}:{{order.weight}}&nbsp;&nbsp;&nbsp; {{getOrderDet(order)}}&nbsp;&nbsp;&nbsp;		
+	 							{{order.city}} &nbsp;&nbsp;&nbsp; 
+	 							{{order.customer_name | limitTo: 15}}						
+						</option>
+				</select>
+				</p>
+				<span ng-if="isCooled(getId($index,0))" style="color:#999;">{{arraylang['cooled'][selectedlang]}}</span>
+			</td>
+	    	<td class="col-xs-6 pallet-order" style="text-align: center;">
+	    		<p>
+					<select id="{{getId($index,1)}}" class="js-example-basic-multiple form-control" name="states[]" multiple="multiple">
+					    <option  ng-repeat="order in crnt_route" value="{{order.id}}" >
+ 																{{getPalletIndex(order.id)}}&nbsp;&nbsp;&nbsp; 
+								{{arraylang['units'][selectedlang]}}:{{order.amount}} &nbsp;&nbsp;&nbsp;
+	 							{{arraylang['weight'][selectedlang]}}:{{order.weight}}&nbsp;&nbsp;&nbsp; {{getOrderDet(order)}}&nbsp;&nbsp;&nbsp;		
+	 							{{order.city}} &nbsp;&nbsp;&nbsp; 
+	 							{{order.customer_name | limitTo: 15}}
+						</option>
+					</select>
+				</p>
+				<span ng-if="isCooled(getId($index,1))" style="color:#999;">{{arraylang['cooled'][selectedlang]}}</span>
+	    	</td>
+	    </tr>
+	    <tr class="last2Rows">
+	    	<td class="col-xs-6 pallet-order" style="text-align: center;">
+	    		<p>
+					<select id="2" class="js-example-basic-multiple form-control" name="states[]" multiple="multiple">
+						    <option  ng-repeat="order in crnt_route"  value="{{order.id}}"  >
+								{{getPalletIndex(order.id)}}&nbsp;&nbsp;&nbsp; 
+								{{arraylang['units'][selectedlang]}}:{{order.amount}} &nbsp;&nbsp;&nbsp;
+	 							{{arraylang['weight'][selectedlang]}}:{{order.weight}}&nbsp;&nbsp;&nbsp; {{getOrderDet(order)}}&nbsp;&nbsp;&nbsp;		
+	 							{{order.city}} &nbsp;&nbsp;&nbsp; 
+	 							{{order.customer_name | limitTo: 15}}
+							</option>
+					</select>
+				</p>
+				<span ng-if="isCooled(2)" style="color:#999;">{{arraylang['cooled'][selectedlang]}}</span>
+	    	</td>
+	    	<td class="col-xs-6 pallet-order" style="text-align: center;">
+	    		<p>
+					<select id="1" class="js-example-basic-multiple form-control" name="states[]" multiple="multiple">
+						    <option  ng-repeat="order in crnt_route"  value="{{order.id}}"  >
+																{{getPalletIndex(order.id)}}&nbsp;&nbsp;&nbsp; 
+								{{arraylang['units'][selectedlang]}}:{{order.amount}} &nbsp;&nbsp;&nbsp;
+	 							{{arraylang['weight'][selectedlang]}}:{{order.weight}}&nbsp;&nbsp;&nbsp; {{getOrderDet(order)}}&nbsp;&nbsp;&nbsp;		
+	 							{{order.city}} &nbsp;&nbsp;&nbsp; 
+	 							{{order.customer_name | limitTo: 15}}
+							</option>
+					</select>
+				</p>
+	    		<span ng-if="isCooled(1)" style="color:#999;">{{arraylang['cooled'][selectedlang]}}</span>
+    		</td>
+	    </tr>
+	    <tr class="last2Rows">
+	    	<td class="col-xs-6 pallet-order" style="text-align: center;">
+	    		<p>
+					<select id="0" class="js-example-basic-multiple form-control" name="states[]" multiple="multiple">
+						    <option  ng-repeat="order in crnt_route"  value="{{order.id}}"  >
+								{{getPalletIndex(order.id)}}&nbsp;&nbsp;&nbsp; 
+								{{arraylang['units'][selectedlang]}}:{{order.amount}} &nbsp;&nbsp;&nbsp;
+	 							{{arraylang['weight'][selectedlang]}}:{{order.weight}}&nbsp;&nbsp;&nbsp; {{getOrderDet(order)}}&nbsp;&nbsp;&nbsp;		
+	 							{{order.city}} &nbsp;&nbsp;&nbsp; 
+	 							{{order.customer_name | limitTo: 15}} 
+							</option>
+					</select>
+				</p>
+	    		<span ng-if="isCooled(0)" style="color:#999;">{{arraylang['cooled'][selectedlang]}}</span>
+    		</td>
+	    	<td class="col-xs-6 pallet-order" style="background-color:   #0d0d0d;text-align: center;"><span style="color:white;">{{arraylang['jack'][selectedlang]}}</span></td>
+	    </tr>
+	  </table>
+  </div>
+</div>
+<script>
+	
+
+</script>

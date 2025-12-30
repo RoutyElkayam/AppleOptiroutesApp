@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+
+<!--HTML5 doctype-->
+
+<html ng-app="RouteSpeed">
+
+
+
+
+
+<head>
+      
+    <title>Optiroutes App</title>
+
+    <base href="./">
+
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0, minimal-ui" id="viewportMeta">
+    <!-- , maximum-scale=10, minimum-scale=0.1,  -->
+    <!-- content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0, minimal-ui"-->
+
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+
+    <META HTTP-EQUIV="Pragma" CONTENT="no-cache">
+
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <link rel="shortcut icon" type="image/x-icon" href="img/favicon.ico">
+
+    <link rel="stylesheet" href="css/bootstrap.min.css?v=381.4">
+
+    <script type="text/javascript" charset="utf-8" src="lib/jquery.min.js?v=381.4"></script>
+
+    <script src='cordova.js'></script>
+
+    <link id="bootstrap" rel="stylesheet" href="css/bootstrap-rtl.css?v=381.4">
+
+    <link id="app_style" rel="stylesheet" href="css/style.css?v=381.4">
+
+    <script src="https://kit.fontawesome.com/983ebd0130.js" crossorigin="anonymous"></script>
+
+    <link rel="stylesheet" href="css/font-awesome.min.css?v=381.4">
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.12.1/css/all.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="lib/gauge.css?v=381.4">
+
+    <link href="https://fonts.googleapis.com/css?family=Assistant:200,300,400,600,700,800" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css" 
+         crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <script src="js/bootstrap.min.js?v=381.4"></script>
+
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/angular-material/1.2.3/angular-material.min.css" />
+
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0rc.0/css/select2.min.css" 
+         crossorigin="anonymous" referrerpolicy="no-referrer" /> 
+
+    <link rel="stylesheet" href="css/massautocomplete.theme.css"> 
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-rc.0/js/select2.min.js" 
+       crossorigin="anonymous" referrerpolicy="no-referrer"></script> 
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/webcamjs/1.0.26/webcam.js"></script>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+</head>
+
+
+
+<body style="width: auto!important; overflow-x: hidden!important">
+
+
+
+
+
+    <div ng-view></div>
+
+    <!-- Modal message that there are more orders this station-this customer  -->
+    <div id="errorModal" class="modal fade" role="dialog" data-keyboard="false" data-backdrop="static">
+        <div class="modal-dialog">
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-body">
+                    <span ng-bind="errorMessage"></span>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn" style="margin-top:5px"  data-dismiss="modal">
+                        {{arraylang['try_again2'][selectedlang]}}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button style="display: none" id="message-trigger" data-toggle="modal" data-target="#message-modal"></button>
+
+    <!-- Modal -->
+
+    <div class="modal fade popup" id="message-modal" role="dialog">
+
+        <div class="modal-dialog">
+
+
+
+            <!-- Modal content-->
+
+            <div style="top: 60px;" class="modal-content">
+
+
+
+                <div style="padding-top: 11px;" class="modal-header">
+
+                    <p class="center modal-title"><span ng-bind="modal.message"></span></p>
+
+                </div>
+
+                <div class="modal-footer">
+
+
+
+                    <button ng-click="saveAddress()" type="button" class="btn skip-btn" data-dismiss="modal">
+
+				{{arraylang['confirm'][selectedlang]}}
+
+			</button>
+
+                    <button type="button" class="btn skip-btn" data-dismiss="modal">
+
+				{{arraylang['cancel'][selectedlang]}}
+
+			</button>
+
+                </div>
+
+
+
+            </div>
+
+
+
+        </div>
+
+    </div>
+
+
+
+</body>
+
+<script src="js/angular.js?v=381.4"></script>
+
+<script src="js/angular-animate.js?v=381.4"></script>
+
+<script src="js/angular-messages.js?v=381.4"></script>
+
+<script src="js/angular-sanitize.js?v=381.4"></script>
+
+<script src="js/angular-aria.js?v=381.4"></script>
+
+<script src="js/angular-route.js?v=381.4"></script>
+
+<script src="js/signature.js?v=381.4"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" 
+   crossorigin="anonymous" referrerpolicy="no-referrer"></script> 
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/1.5.3/signature_pad.min.js"></script>
+
+
+
+<script src="https://maps.googleapis.com/maps/api/js?key=&libraries=places&language=he"></script>
+
+<!-- vsGoogleAutocomplete -->
+
+<script src="js/vs-google-autocomplete.js?v=381.4"></script>
+
+<script src="js/vs-autocomplete-validator.js?v=381.4"></script>
+
+<script src="js/angular-drag-and-drop-lists.min.js?v=381.4"></script>
+
+<script src="js/dragdroptouch.js?v=381.4"></script>
+
+
+
+<script src="js/timer.js?v=381.4"></script>
+
+<script src="app.moduls.js?v=381.4"></script>
+
+<script src="js/templates.js?v=381.4"></script>
+
+<script src="app.route.js?v=381.4"></script>
+
+<script src="core/nextStop/nextStop.Ctrl.js?v=381.4"></script>
+
+<script src="core/orders/orders.Ctrl.js?v=381.4"></script>
+
+<script src="core/login/login.ctrl.js?v=381.4"></script>
+
+<script src="core/palletsArranging/palletsArranging.Ctrl.js?v=381.4"></script>
+
+<script src="core/palletsOrderInTruck/palletsOrderInTruck.Ctrl.js?v=381.4"></script>
+
+<script src="theme/theme.module.js?v=381.4"></script>
+
+<script src="theme/config/config.js?v=381.4"></script>
+
+<script src="theme/services/StopService.js?v=381.4"></script>
+
+<script src="theme/services/LocationService.js?v=381.4"></script>
+
+<script src="theme/services/PalletsService.js?v=381.4"></script>
+
+<script src="theme/services/connectPOSTService.js?v=381.4"></script>
+
+<script src="theme/services/connectGETService.js?v=381.4"></script>
+
+<script src="theme/services/HttpInterceptorService.js?v=381.4"></script>
+
+<script src="theme/services/podDraftStoreService.js?v=381.4"></script>
+
+<script src="theme/services/AppActivityService.js?v=381.4"></script>
+
+<script src="theme/filters/getByIdFilter.js?v=381.4"></script>
+
+<script src="theme/directives/dragArea.js?v=381.4"></script>
+
+<script src="theme/directives/rs-drag-guard.module.js?v=381.4"></script>
+
+<script src="theme/directives/focusSelect.js?v=381.4"></script>
+
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-aria/1.8.2/angular-aria.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-messages/1.8.2/angular-messages.min.js"></script> -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/angular-material/1.2.3/angular-material.min.js"></script>
+<script src="js/massautocomplete.min.js"></script>
+
+
+</html>
