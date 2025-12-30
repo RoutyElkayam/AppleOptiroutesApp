@@ -883,8 +883,15 @@
           confirm_take_picture:{
             he:'האם אתה מאשר את פתיחת המצלמה?',
             en:'Are you sure you want to take a picture?'
+          },        
+          navigate:{
+              he:'ניווט',
+              en:'Navigate'
+          },
+          confirm_apple_maps:{
+              he:'לפתוח ב-Apple Maps? לחץ על ביטול כדי לפתוח ב-Waze.',
+              en:'Open in Apple Maps? Click Cancel to open in Waze.'
           }
-        
         };
         $rootScope.zoomLevel = 1.0;
         var currentPosition;
@@ -927,7 +934,7 @@
             },
           }).then(
             function (response) {
-              console.log(response);
+              //console.log(response);
 
               if (response && response != "null" && response != null) {
                 //console.log(response);
@@ -1134,7 +1141,7 @@
         $rootScope.manageVersions = function(){
           window.open("https://optiroutes.com/a/",'_blank');
         }
-        $rootScope.checkVersion = function () {
+        $rootScope.checkVersion = function () {//For browser only
           $.ajax({
             url: $rootScope.getBaseUrl() + "site/version",
 

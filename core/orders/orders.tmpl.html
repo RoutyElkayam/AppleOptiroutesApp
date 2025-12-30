@@ -327,10 +327,11 @@
 
                     </div>
 
-                    <div class="col-xs-2 no-padding">
+                    <div class="col-xs-4 no-padding">
 
-                        <button ng-disabled="!route.start_time" ng-click="waze(stop);$event.stopPropagation();" class="circle-urgency"><img src="img/waze.png"></button>
-
+                        <button ng-if="isIOS()" ng-disabled="!route.start_time" ng-click="navigate(stop,1);$event.stopPropagation();" class="circle-urgency"><img src="img/navigate.png"></button>
+                        
+                        <button ng-disabled="!route.start_time" ng-click="navigate(stop,2);$event.stopPropagation();" class="circle-urgency"><img src="img/waze.png"></button>
                     </div>
 
                 </div>

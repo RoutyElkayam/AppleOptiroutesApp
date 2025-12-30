@@ -36,7 +36,6 @@ angular.module("RouteSpeed.nextStop").controller("nextStopCtrl", [
     $scope.requier_surface =
       localStorage.getItem("requier_surface") == 1 ? true : false;
     //$scope.invalid_reporting=$scope.requier_surface==false?0:1;
-
     // efrat 14.11.22 close dialog model on back to the previous page event
     $(window).on("popstate", function () {
       //console.log("back");
@@ -781,90 +780,62 @@ angular.module("RouteSpeed.nextStop").controller("nextStopCtrl", [
     };
 
     $scope.getArrTime = StopService.getArrTime;
-
-    $scope.waze = function (current_stop) {
+    $scope.isIOS = function () {
+          // iOS detection including newer iPads
+          return (
+            /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+          );
+    };
+    
+    $scope.navigate = function (current_stop) {
       var urlScheme;
       var url;
+      var appleMapsUrl ;
+      var isIOS = function () {
+          // iOS detection including newer iPads
+          return (
+            /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+          );
+        };
       //var url='http://waze.to/?ll='+current_stop.lat+','+current_stop.lng+'&navigate=yes';
-      if (!$rootScope.current_user.navigation_by_location)
-        url =
-          "http://waze.to/?q=" +
-          current_stop.address.replace(/ /g, "%20") +
-          ";&navigate=yes";
-      else
-        url =
-          "http://waze.to/?ll=" +
-          current_stop.lat +
-          "," +
-          current_stop.lng +
-          "&navigate=yes";
+        if (!$rootScope.current_user.navigation_by_location){
+            appleMapsUrl = "http://maps.apple.com/?daddr=" + encodeURIComponent(current_stop.address);
+            url =
+            "http://waze.to/?q=" +
+            current_stop.address.replace(/ /g, "%20") +
+            ";&navigate=yes";
+        }else{
+            appleMapsUrl = "http://maps.apple.com/?daddr=" + current_stop.lat + "," + current_stop.lng;
+            url =
+            "http://waze.to/?ll=" +
+            current_stop.lat +
+            "," +
+            current_stop.lng +
+            "&navigate=yes";
+       }
+        if (isIOS()) {
+            // iOS: Provide Apple Maps and Waze options
+            if (confirm($rootScope.arraylang['confirm_apple_maps'][$rootScope.selectedlang])) {
+                window.open(appleMapsUrl, "_blank");
+            } else {
+                urlScheme = "waze://?"+url.split('?')[1];
+                
+                // Attempt to launch Waze app or fallback to website
+                var newTab = window.open(urlScheme, '_blank');
+                newTab.focus(); // Focus on the newly opened tab
+            }
+        }else{
+            
+            urlScheme = url; // Fallback to website URL
+            
+            // Attempt to launch Waze app or fallback to website
+            var newTab = window.open(urlScheme, '_blank');
+            newTab.focus(); // Focus on the newly opened tab
+        }
       
-      // Check if Waze app is installed
-      var userAgent = navigator.userAgent || navigator.vendor || window.opera;
-      if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-          urlScheme = "waze://?"+url.split('?')[1];
-      } else {
-          urlScheme = url; // Fallback to website URL
-      }
-  
-      // Attempt to launch Waze app or fallback to website
-      var newTab = window.open(urlScheme, '_blank');
-      newTab.focus(); // Focus on the newly opened tab
-      // var url;
-      // //var url='http://waze.to/?ll='+current_stop.lat+','+current_stop.lng+'&navigate=yes';
-      // if (!$rootScope.current_user.navigation_by_location)
-      //   url =
-      //     "http://waze.to/?q=" +
-      //     current_stop.address.replace(/ /g, "%20") +
-      //     ";&navigate=yes";
-      // else
-      //   url =
-      //     "http://waze.to/?ll=" +
-      //     current_stop.lat +
-      //     "," +
-      //     current_stop.lng +
-      //     "&navigate=yes";
-      // // window.location.href = url;
-      // setTimeout(function(){
-      //   document.location.href = url;
-      // },250);
 
-      /*var data = {
-
-			data : {
-
-				next_sms_name : $scope.current_stop.customer_name,
-
-				next_sms_phone : $scope.current_stop.phone,
-
-				next_sms_id : $scope.current_stop.id
-
-			}
-
-		}
-
-		$.ajax({
-
-			url : $rootScope.getBaseUrl() + 'order/sms',
-
-			data : data,
-
-			type : 'post',
-
-			headers : {
-
-				'x-csrf-token-app' : $scope.identify,
-				'user-token-app' : localStorage.getItem("user_id")
-
-			}
-
-		}).then(function suc(response) {
-
-		}, function fail(data) {
-
-
-
-		});*/
     };
 
     $scope.pinMap = function () {

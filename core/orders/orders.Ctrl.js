@@ -66,7 +66,15 @@ angular.module("RouteSpeed.orders").controller("ordersCtrl", [
     $scope.show_cash =
       localStorage.getItem("show_cash") == "true" ? true : false;
     console.log($scope.hide_dayes_arror);
-
+    $scope.isIOS = function () {
+        // iOS detection including newer iPads
+        return (
+          /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+        );
+      };
+      console.log("User Agent: ", navigator.userAgent);
+      console.log("isIOS: ", $scope.isIOS());
     var ua = navigator.userAgent.toLowerCase();
     var isAndroid = ua.indexOf("android") > -1; //&& ua.indexOf("mobile");
     if (isAndroid) {
@@ -405,54 +413,73 @@ angular.module("RouteSpeed.orders").controller("ordersCtrl", [
         });
     };
     /******autocompleate**********/
-    $scope.waze = function (current_stop) {
-      var urlScheme;
-      var url;
-      //var url='http://waze.to/?ll='+current_stop.lat+','+current_stop.lng+'&navigate=yes';
-      if (!$rootScope.current_user.navigation_by_location)
-        url =
-          "http://waze.to/?q=" +
-          current_stop.address.replace(/ /g, "%20") +
-          ";&navigate=yes";
-      else
-        url =
-          "http://waze.to/?ll=" +
-          current_stop.lat +
-          "," +
-          current_stop.lng +
-          "&navigate=yes";
-      
-      // Check if Waze app is installed
-      var userAgent = navigator.userAgent || navigator.vendor || window.opera;
-      if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
-          urlScheme = "waze://?"+url.split('?')[1];
-      } else {
-          urlScheme = url; // Fallback to website URL
-      }
-      // Attempt to launch Waze app or fallback to website
-      // Open the link in a new tab
-      var newTab = window.open(urlScheme, '_blank');
-      newTab.focus(); // Focus on the newly opened tab
-      // var url;
-      // //var url='http://waze.to/?ll='+current_stop.lat+','+current_stop.lng+'&navigate=yes';
-      // if (!$rootScope.current_user.navigation_by_location){
-      //   url =
-      //     "http://waze.to/?q=" +
-      //     stop.address.replace(/ /g, "%20") +
-      //     ";&navigate=yes";
-      // }else{
-      //   url =
-      //     "http://waze.to/?ll=" +
-      //     stop.lat +
-      //     "," +
-      //     stop.lng +
-      //     "&navigate=yes";
-      // }
-      // // window.location.href = url;
-      // setTimeout(function(){
-      //   document.location.href = url;
-      // },250);
-    };
+
+      $scope.navigate = function (current_stop,maps_system=2) {
+        var urlScheme;
+        var url;
+        var appleMapsUrl ;
+        var isIOS = function () {
+            // iOS detection including newer iPads
+            return (
+              /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+            );
+          };
+        //var url='http://waze.to/?ll='+current_stop.lat+','+current_stop.lng+'&navigate=yes';
+          if (!$rootScope.current_user.navigation_by_location){
+              appleMapsUrl = "http://maps.apple.com/?daddr=" + encodeURIComponent(current_stop.address);
+              url =
+              "http://waze.to/?q=" +
+              current_stop.address.replace(/ /g, "%20") +
+              ";&navigate=yes";
+          }else{
+              appleMapsUrl = "http://maps.apple.com/?daddr=" + current_stop.lat + "," + current_stop.lng;
+              url =
+              "http://waze.to/?ll=" +
+              current_stop.lat +
+              "," +
+              current_stop.lng +
+              "&navigate=yes";
+         }
+          if (isIOS()) {
+              // iOS: Provide Apple Maps and Waze options
+              if (maps_system == 1) {
+                  window.open(appleMapsUrl, "_blank");
+              } else {
+                  urlScheme = "waze://?"+url.split('?')[1];
+                  
+                  // Attempt to launch Waze app or fallback to website
+                  var newTab = window.open(urlScheme, '_blank');
+                  newTab.focus(); // Focus on the newly opened tab
+                  
+                  // Check if the app is installed by falling back to the Waze website
+                  setTimeout(function () {
+                      // If the new tab is still open, fallback to Waze's web version
+                      if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
+                          window.open("https://www.waze.com/ul?" + url.split('?')[1], "_blank");
+                      }
+                  }, 1000); // Timeout for checking app response
+              }
+          }else{
+              
+              // Waze option
+              let urlScheme = "waze://?" + url.split('?')[1];
+
+              // Try opening the Waze app
+              let newTab = window.open(urlScheme, '_blank');
+              newTab.focus();
+
+              // Check if the app is installed by falling back to the Waze website
+              setTimeout(function () {
+                  // If the new tab is still open, fallback to Waze's web version
+                  if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
+                      window.open("https://www.waze.com/ul?" + url.split('?')[1], "_blank");
+                  }
+              }, 1000); // Timeout for checking app response
+          }
+        
+
+      };
 
     $scope.openModal = function (id, stop) {
       if (id == "get" && $rootScope.current_user.arrival_reporting_app) {

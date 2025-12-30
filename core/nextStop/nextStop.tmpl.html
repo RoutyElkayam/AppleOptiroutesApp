@@ -203,12 +203,20 @@
 					<img src="img/white_phone.svg">
 				</button>
             </div>
-            <div class="col-xs-4 no-padding">
-                <button ng-click="waze(current_stop)" class="waze-btn">
-					WAZE
-					<img src="img/waze.svg">
-				</button>
+            <div class="col-xs-4 no-padding" >
+                <!-- Button for iOS -->
+                <button ng-if="isIOS" ng-click="navigate(current_stop)" class="waze-btn">
+                    {{arraylang['navigate'][selectedlang]}}
+                    <img src="img/navigate.svg" alt="Navigate">
+                </button>
+
+                <!-- Button for Android -->
+                <button ng-if="!isIOS" ng-click="navigate(current_stop)" class="waze-btn">
+                    WAZE
+                    <img src="img/waze.svg" alt="Waze">
+                </button>
             </div>
+
         </div>
             
         <div class="col-xs-12 no-padding" style="margin-bottom: 2%;" ng-if="current_user.display_customer_options_on_app">
